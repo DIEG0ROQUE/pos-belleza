@@ -651,9 +651,10 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             </button>
             
             <div style={{ textAlign: "center", borderBottom: "1px dashed #ccc", paddingBottom: "1rem", marginBottom: "1rem" }}>
-              <h3 style={{ margin: "0 0 0.25rem 0", fontFamily: "monospace" }}>BEAUTY & FASHION BOUTIQUE</h3>
-              <p style={{ margin: 0, fontSize: "0.8rem" }}>Av. de la Belleza #123, México</p>
-              <p style={{ margin: 0, fontSize: "0.8rem" }}>Tel: 555-123-4567</p>
+              <h3 style={{ margin: "0 0 0.25rem 0", fontFamily: "monospace" }}>ZABALEGUI</h3>
+              <p style={{ margin: 0, fontSize: "0.8rem" }}>Armenta y López 1025</p>
+              <p style={{ margin: 0, fontSize: "0.8rem" }}>Tel: 9541184642</p>
+              <p style={{ margin: 0, fontSize: "0.8rem" }}>Horario: 11:00 - 18:30</p>
             </div>
 
             <div style={{ fontSize: "0.8rem", marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>

@@ -74,7 +74,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
         
         {/* TARJETA DIGITAL VIP */}
         <div style={{
-          background: "linear-gradient(135deg, #4a1525 0%, #201317 100%)",
+          background: "linear-gradient(135deg, var(--primary-color) 0%, var(--bg-dark-panel) 100%)",
           borderRadius: "var(--radius-lg)",
           color: "white",
           padding: "2rem",
@@ -95,13 +95,13 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
             width: "120px",
             height: "120px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(197,155,142,0.3) 0%, transparent 70%)"
+            background: "radial-gradient(circle, rgba(200,146,146,0.3) 0%, transparent 70%)"
           }} />
           
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", zIndex: 1 }}>
             <div>
               <span className="brand-font" style={{ color: "var(--accent-gold)", fontSize: "1.4rem", letterSpacing: "0.05em" }}>
-                BEAUTY CLUB
+                ZABALEGUI CLUB
               </span>
               <span style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", marginTop: "2px" }}>
                 Miembro VIP Premium
@@ -137,7 +137,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
             width: "60px",
             height: "60px",
             borderRadius: "50%",
-            background: "rgba(74, 21, 37, 0.06)",
+            background: "rgba(49, 29, 32, 0.06)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -150,7 +150,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
           <h2 style={{ fontSize: "3rem", margin: "0.25rem 0 0.5rem 0", color: "var(--primary-color)" }}>{currentUser.points}</h2>
           
           <div style={{
-            background: "rgba(74, 21, 37, 0.04)",
+            background: "rgba(49, 29, 32, 0.04)",
             padding: "0.5rem 1rem",
             borderRadius: "20px",
             fontSize: "0.85rem",
@@ -174,7 +174,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              border: isAffordable ? "1px solid rgba(74,21,37,0.15)" : "1px solid var(--border-color)",
+              border: isAffordable ? "1px solid rgba(49,29,32,0.15)" : "1px solid var(--border-color)",
               opacity: isAffordable ? 1 : 0.8
             }}>
               <div>
@@ -213,7 +213,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
       <div className="glass-panel" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
           <thead>
-            <tr style={{ background: "rgba(74, 21, 37, 0.04)", borderBottom: "1px solid var(--border-color)" }}>
+            <tr style={{ background: "rgba(49, 29, 32, 0.04)", borderBottom: "1px solid var(--border-color)" }}>
               <th style={{ padding: "1rem" }}>Fecha</th>
               <th style={{ padding: "1rem" }}>Descripción</th>
               <th style={{ padding: "1rem", textAlign: "right" }}>Puntos</th>

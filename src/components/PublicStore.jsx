@@ -1,6 +1,6 @@
 // PublicStore.jsx - Catálogo Público del Negocio de Belleza y Moda
 import React, { useState } from "react";
-import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock } from "lucide-react";
 
 export default function PublicStore({ products, onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -223,6 +223,88 @@ export default function PublicStore({ products, onNavigate }) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Sección Elegante de Contacto */}
+      <div style={{ maxWidth: "1200px", margin: "4rem auto 2rem auto", padding: "0 1.5rem" }}>
+        <div className="glass-panel" style={{
+          padding: "3rem 2rem",
+          borderRadius: "var(--radius-lg)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(251,249,248,0.9))",
+          textAlign: "center"
+        }}>
+          <h2 style={{ marginBottom: "2rem" }}>Visítanos & Contáctanos</h2>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "2.5rem",
+            justifyContent: "center",
+            maxWidth: "900px",
+            margin: "0 auto"
+          }}>
+            {/* Dirección */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "rgba(197, 155, 142, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--primary-color)"
+              }}>
+                <MapPin size={22} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: "1.1rem" }}>Dirección</h4>
+              <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.95rem" }}>
+                Armenta y López 1025<br />Oaxaca Centro, CP 68000
+              </p>
+            </div>
+
+            {/* Teléfono */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "rgba(197, 155, 142, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--primary-color)"
+              }}>
+                <Phone size={22} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: "1.1rem" }}>Teléfono</h4>
+              <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.95rem" }}>
+                <a href="tel:9541184642" style={{ color: "inherit", textDecoration: "none", fontWeight: "600" }}>
+                  954 118 4642
+                </a>
+              </p>
+            </div>
+
+            {/* Horario */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "rgba(197, 155, 142, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--primary-color)"
+              }}>
+                <Clock size={22} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: "1.1rem" }}>Horario de Atención</h4>
+              <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.95rem" }}>
+                Lunes a Domingo<br />11:00 AM a 6:30 PM
+              </p>
+            </div>
           </div>
         </div>
       </div>

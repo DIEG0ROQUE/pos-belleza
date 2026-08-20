@@ -64,9 +64,9 @@ export default function App() {
       {/* Header Premium Nav */}
       <header className="header">
         <div className="logo" style={{ cursor: "pointer" }} onClick={() => setCurrentView("store")}>
-          <div className="logo-icon">B</div>
-          <span className="brand-font" style={{ fontSize: "1.6rem", letterSpacing: "0.05em" }}>
-            Boutique Belleza
+          <div className="logo-icon" style={{ fontFamily: "'Playfair Display', serif", fontWeight: "bold" }}>ZB</div>
+          <span className="brand-font" style={{ fontSize: "1.6rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            Zabalegui
           </span>
         </div>
 
@@ -190,10 +190,13 @@ export default function App() {
 
       {/* Footer Premium */}
       <footer className="footer">
-        <div className="footer-logo">Boutique Belleza & Estilo</div>
-        <p style={{ margin: "0.5rem 0", fontSize: "0.9rem" }}>Sistema de Punto de Venta, Inventario & Fidelización VIP</p>
+        <div className="footer-logo" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>Zabalegui</div>
+        <p style={{ margin: "0.5rem 0", fontSize: "0.9rem" }}>Punto de Venta, Inventario & Fidelización VIP</p>
+        <p style={{ margin: "0.5rem 0 1rem 0", fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.5)" }}>
+          Dirección: Armenta y López 1025 | Tel: 9541184642 | Horario: 11:00 AM - 6:30 PM
+        </p>
         <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.4)" }}>
-          © {new Date().getFullYear()} Boutique de Belleza. Todos los derechos reservados.
+          © {new Date().getFullYear()} Zabalegui. Todos los derechos reservados.
         </p>
       </footer>
     </div>

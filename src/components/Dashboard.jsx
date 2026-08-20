@@ -132,7 +132,7 @@ export default function Dashboard({ products }) {
         {/* Ganancia Neta */}
         <div className="glass-panel" style={{ padding: "1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
           <div style={{
-            width: "50px", height: "50px", borderRadius: "50%", background: "rgba(197, 155, 142, 0.15)",
+            width: "50px", height: "50px", borderRadius: "50%", background: "rgba(200, 146, 146, 0.15)",
             display: "flex", alignItems: "center", color: "var(--primary-color)",
             justifyContent: "center"
           }}>
@@ -354,7 +354,7 @@ export default function Dashboard({ products }) {
                 padding: "0.75rem",
                 background: "white",
                 borderRadius: "var(--radius-md)",
-                border: "1px solid rgba(74, 21, 37, 0.03)"
+                border: "1px solid rgba(49, 29, 32, 0.03)"
               }}>
                 <div>
                   <strong style={{ fontSize: "0.95rem", display: "block" }}>{client.name}</strong>

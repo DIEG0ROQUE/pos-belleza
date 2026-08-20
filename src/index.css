@@ -2,22 +2,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 
 :root {
-  --primary-color: #4a1525;       /* Plum elegante */
-  --primary-light: #6a253a;
-  --accent-gold: #c59b8e;        /* Rose Gold */
-  --accent-gold-bright: #d4af37; /* Oro brillante */
-  --bg-app: #fbf9f8;             /* Crema muy suave */
+  --primary-color: #311d20;       /* Marrón Chocolate Oscuro */
+  --primary-light: #4e3034;
+  --accent-gold: #c89292;        /* Rosa Empolvado */
+  --accent-gold-bright: #cca29f; /* Rosa Claro */
+  --bg-app: #fbf8f7;             /* Crema Cálida */
   --bg-card: rgba(255, 255, 255, 0.85);
-  --bg-dark-panel: #201317;      /* Panel oscuro para contraste */
-  --text-dark: #2c1a20;
-  --text-muted: #7d6e73;
+  --bg-dark-panel: #201315;      /* Chocolate muy oscuro */
+  --text-dark: #2c1a1c;
+  --text-muted: #7d676a;
   --text-light: #ffffff;
-  --border-color: rgba(74, 21, 37, 0.1);
-  --border-focus: #c59b8e;
+  --border-color: rgba(49, 29, 32, 0.08);
+  --border-focus: #c89292;
   
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 8px 24px rgba(74, 21, 37, 0.08);
-  --shadow-lg: 0 16px 40px rgba(74, 21, 37, 0.15);
+  --shadow-sm: 0 2px 8px rgba(49, 29, 32, 0.04);
+  --shadow-md: 0 8px 24px rgba(49, 29, 32, 0.08);
+  --shadow-lg: 0 16px 40px rgba(49, 29, 32, 0.15);
   
   --radius-sm: 8px;
   --radius-md: 16px;

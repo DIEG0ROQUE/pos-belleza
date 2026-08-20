@@ -222,7 +222,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       <div className="glass-panel" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
           <thead>
-            <tr style={{ background: "rgba(74, 21, 37, 0.04)", borderBottom: "1px solid var(--border-color)" }}>
+            <tr style={{ background: "rgba(49, 29, 32, 0.04)", borderBottom: "1px solid var(--border-color)" }}>
               <th style={{ padding: "1rem" }}>Imagen</th>
               <th style={{ padding: "1rem" }}>Producto / Código</th>
               <th style={{ padding: "1rem" }}>Categoría</th>
