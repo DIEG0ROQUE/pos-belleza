@@ -542,6 +542,52 @@ export const db = {
     return newSale;
   },
 
+  deleteSale: (saleId) => {
+    const sales = db.getSales();
+    const saleIndex = sales.findIndex(s => s.id === saleId);
+    if (saleIndex === -1) {
+      throw new Error("Transacción no encontrada.");
+    }
+    const sale = sales[saleIndex];
+
+    // 1. Restaurar Stock de Productos
+    const products = db.getProducts();
+    sale.items.forEach(item => {
+      const prod = products.find(p => p.id === item.id);
+      if (prod) {
+        prod.stock += item.quantity;
+      }
+    });
+    db.saveProducts(products);
+
+    // 2. Si hay cliente, revertir los puntos asociados
+    if (sale.customerId) {
+      const users = db.getUsers();
+      const userIndex = users.findIndex(u => u.id === sale.customerId);
+      if (userIndex !== -1) {
+        const user = users[userIndex];
+        
+        // Revertir puntos ganados (reducirlos)
+        user.points = Math.max(0, user.points - sale.pointsEarned);
+        // Revertir puntos usados (devolverlos)
+        user.points += sale.pointsUsed;
+
+        // Limpiar movimientos relacionados en el historial del cliente
+        if (user.pointHistory) {
+          user.pointHistory = user.pointHistory.filter(h => 
+            !h.description.includes(sale.id.slice(-6))
+          );
+        }
+        
+        db.saveUsers(users);
+      }
+    }
+
+    // 3. Eliminar la venta de la lista
+    sales.splice(saleIndex, 1);
+    db.saveSales(sales);
+  },
+
   // --- RECOMPENSAS ---
   getRewards: () => {
     try {

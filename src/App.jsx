@@ -174,7 +174,11 @@ export default function App() {
         )}
         
         {currentView === "dashboard" && currentUser && currentUser.role === "gerente" && (
-          <Dashboard products={products} />
+          <Dashboard 
+            products={products} 
+            onRefreshProducts={refreshProducts} 
+            showToast={showToast} 
+          />
         )}
         
         {currentView === "loyalty" && currentUser && currentUser.role === "cliente" && (

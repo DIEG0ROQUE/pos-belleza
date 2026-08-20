@@ -2,11 +2,11 @@
 import React, { useState } from "react";
 import { 
   DollarSign, ShoppingCart, UserCheck, TrendingUp, Award, AlertCircle, 
-  Calendar, Search, Printer, X, Eye, FileText, List 
+  Calendar, Search, Printer, X, Eye, FileText, List, Trash2 
 } from "lucide-react";
 import { db } from "../utils/db";
 
-export default function Dashboard({ products }) {
+export default function Dashboard({ products, onRefreshProducts, showToast }) {
   const sales = db.getSales();
   const users = db.getUsers();
   const clients = users.filter(u => u.role === "cliente");
@@ -237,6 +237,18 @@ export default function Dashboard({ products }) {
     printWindow.document.close();
   };
 
+  const handleDeleteSale = (saleId) => {
+    if (window.confirm(`¿Estás seguro de eliminar la transacción ${saleId}? Esto devolverá los productos al inventario y reajustará los puntos VIP del cliente.`)) {
+      try {
+        db.deleteSale(saleId);
+        if (onRefreshProducts) onRefreshProducts();
+        if (showToast) showToast("Transacción eliminada con éxito. Inventario y puntos VIP actualizados.", "success");
+      } catch (err) {
+        if (showToast) showToast(err.message, "error");
+      }
+    }
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -265,6 +277,14 @@ export default function Dashboard({ products }) {
             title="Reimprimir Ticket"
           >
             <Printer size={12} /> Ticket
+          </button>
+          <button 
+            className="btn btn-danger btn-sm" 
+            onClick={() => handleDeleteSale(sale.id)}
+            style={{ display: "flex", alignItems: "center", gap: "0.25rem", padding: "0.3rem 0.6rem" }}
+            title="Eliminar Transacción"
+          >
+            <Trash2 size={12} /> Borrar
           </button>
         </div>
       </td>
