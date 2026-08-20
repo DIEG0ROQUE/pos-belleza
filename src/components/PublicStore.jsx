@@ -1,8 +1,9 @@
 // PublicStore.jsx - Catálogo Público del Negocio de Belleza y Moda
 import React, { useState } from "react";
-import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock, Edit, Check, X } from "lucide-react";
+import { db } from "../utils/db";
 
-export default function PublicStore({ products, onNavigate }) {
+export default function PublicStore({ currentUser, products, onRefreshProducts, onNavigate, showToast }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const categories = ["Todos", "Maquillaje", "Belleza", "Ropa"];
 
@@ -10,10 +11,62 @@ export default function PublicStore({ products, onNavigate }) {
     ? products
     : products.filter(p => p.category === selectedCategory);
 
-  // Filtrar productos destacados (ej. precios altos o aleatorios)
-  const featuredProducts = products.slice(0, 3);
-  // Promociones (ej. stock menor a 15)
-  const promoProducts = products.filter(p => p.stock < 15).slice(0, 3);
+  // Filtrar productos destacados por campo isTrending
+  const featuredProducts = products.filter(p => p.isTrending).length > 0
+    ? products.filter(p => p.isTrending)
+    : products.slice(0, 3);
+
+  // Estados para modal de edición rápida para el gerente
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("Maquillaje");
+  const [editPrice, setEditPrice] = useState("");
+  const [editImage, setEditImage] = useState("");
+  const [editIsTrending, setEditIsTrending] = useState(false);
+  const [editIsPromo, setEditIsPromo] = useState(false);
+
+  const startEditingProduct = (product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditCategory(product.category || "Maquillaje");
+    setEditPrice(product.price.toString());
+    setEditImage(product.image || "");
+    setEditIsTrending(!!product.isTrending);
+    setEditIsPromo(!!product.isPromo);
+    setIsEditing(true);
+  };
+
+  const handleSaveProductEdit = (e) => {
+    e.preventDefault();
+    if (!editName || !editPrice) {
+      showToast("Llene los campos obligatorios.", "error");
+      return;
+    }
+
+    const updated = {
+      ...editingProduct,
+      name: editName,
+      category: editCategory,
+      price: parseFloat(editPrice) || 0,
+      image: editImage,
+      isTrending: editIsTrending,
+      isPromo: editIsPromo
+    };
+
+    try {
+      db.updateProduct(updated);
+      onRefreshProducts();
+      setIsEditing(false);
+      if (showToast) {
+        showToast("Producto actualizado correctamente.", "success");
+      }
+    } catch (err) {
+      if (showToast) {
+        showToast("Error al guardar cambios: " + err.message, "error");
+      }
+    }
+  };
 
   return (
     <div style={{ paddingBottom: "3rem" }}>
@@ -140,7 +193,6 @@ export default function PublicStore({ products, onNavigate }) {
           </div>
         </div>
       </div>
-
       {/* Promociones / Destacados */}
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1.5rem 4rem 1.5rem" }}>
         <h2 style={{ textAlign: "center", marginBottom: "3rem" }}>Nuestras Promociones & Tendencias</h2>
@@ -149,7 +201,36 @@ export default function PublicStore({ products, onNavigate }) {
             <div className="product-card" key={product.id}>
               <div className="product-img-wrapper">
                 <img className="product-img" src={product.image} alt={product.name} />
-                <span className="product-badge">Tendencia</span>
+                <span className={`product-badge ${product.isPromo ? "promo" : ""}`}>
+                  {product.isPromo ? "Promoción" : "Tendencia"}
+                </span>
+                
+                {currentUser && currentUser.role === "gerente" && (
+                  <button 
+                    onClick={() => startEditingProduct(product)}
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      left: "10px",
+                      background: "rgba(255, 255, 255, 0.95)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--primary-color)",
+                      cursor: "pointer",
+                      boxShadow: "var(--shadow-sm)",
+                      zIndex: 20,
+                      transition: "var(--transition-fast)"
+                    }}
+                    title="Editar detalles de la promoción"
+                  >
+                    <Edit size={16} />
+                  </button>
+                )}
               </div>
               <div className="product-info">
                 <span className="product-cat">{product.category}</span>
@@ -211,6 +292,33 @@ export default function PublicStore({ products, onNavigate }) {
                   <img className="product-img" src={product.image} alt={product.name} />
                   {product.stock <= 5 && (
                     <span className="product-badge promo">Últimas piezas</span>
+                  )}
+                  
+                  {currentUser && currentUser.role === "gerente" && (
+                    <button 
+                      onClick={() => startEditingProduct(product)}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        left: "10px",
+                        background: "rgba(255, 255, 255, 0.95)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--primary-color)",
+                        cursor: "pointer",
+                        boxShadow: "var(--shadow-sm)",
+                        zIndex: 20,
+                        transition: "var(--transition-fast)"
+                      }}
+                      title="Editar detalles del producto"
+                    >
+                      <Edit size={16} />
+                    </button>
                   )}
                 </div>
                 <div className="product-info">
@@ -308,6 +416,97 @@ export default function PublicStore({ products, onNavigate }) {
           </div>
         </div>
       </div>
+      {/* MODAL EDITAR PRODUCTO (RÁPIDO) */}
+      {isEditing && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-content" style={{ maxWidth: "450px" }}>
+            <button className="modal-close" onClick={() => setIsEditing(false)}>
+              <X size={20} />
+            </button>
+            
+            <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem", color: "var(--primary-color)" }}>
+              Editar Detalles del Producto
+            </h2>
+
+            <form onSubmit={handleSaveProductEdit}>
+              <div className="input-group">
+                <label className="input-label">Nombre del Producto *</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="input-group">
+                  <label className="input-label">Categoría *</label>
+                  <select 
+                    className="input-field"
+                    value={editCategory} 
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
+                    <option value="Maquillaje">Maquillaje</option>
+                    <option value="Belleza">Belleza</option>
+                    <option value="Ropa">Ropa</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Precio al Público * ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">URL de Imagen (Opcional)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={editImage}
+                  onChange={(e) => setEditImage(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", margin: "1.5rem 0" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.95rem", cursor: "pointer" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={editIsTrending} 
+                    onChange={(e) => setEditIsTrending(e.target.checked)} 
+                    style={{ width: "18px", height: "18px", accentColor: "var(--primary-color)" }}
+                  />
+                  <span>Destacar en <strong>Tendencias</strong> (Página de inicio)</span>
+                </label>
+                
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.95rem", cursor: "pointer" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={editIsPromo} 
+                    onChange={(e) => setEditIsPromo(e.target.checked)} 
+                    style={{ width: "18px", height: "18px", accentColor: "var(--primary-color)" }}
+                  />
+                  <span>Destacar en <strong>Promociones</strong> (Etiqueta Promoción)</span>
+                </label>
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem", marginTop: "1rem" }}>
+                <Check size={18} /> Guardar Cambios
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

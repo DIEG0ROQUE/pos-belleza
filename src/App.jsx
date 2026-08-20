@@ -142,7 +142,13 @@ export default function App() {
       {/* Main Container */}
       <main style={{ flex: 1 }}>
         {currentView === "store" && (
-          <PublicStore products={products} onNavigate={setCurrentView} />
+          <PublicStore 
+            currentUser={currentUser} 
+            products={products} 
+            onRefreshProducts={refreshProducts} 
+            onNavigate={setCurrentView} 
+            showToast={showToast} 
+          />
         )}
         
         {currentView === "auth" && (

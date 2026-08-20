@@ -286,6 +286,31 @@ const SEED_SALES = [
 const initStorage = () => {
   if (!localStorage.getItem("pos_products")) {
     localStorage.setItem("pos_products", JSON.stringify(SEED_PRODUCTS));
+  } else {
+    // Migración: Asegurar campos isTrending e isPromo para que el gerente los controle
+    try {
+      const data = localStorage.getItem("pos_products");
+      let products = JSON.parse(data);
+      if (Array.isArray(products)) {
+        let updated = false;
+        products = products.map((p, idx) => {
+          if (p.isTrending === undefined) {
+            p.isTrending = idx < 3; // Primeros 3 son tendencias por defecto
+            updated = true;
+          }
+          if (p.isPromo === undefined) {
+            p.isPromo = idx >= 3 && idx < 5; // Siguientes 2 son promociones por defecto
+            updated = true;
+          }
+          return p;
+        });
+        if (updated) {
+          localStorage.setItem("pos_products", JSON.stringify(products));
+        }
+      }
+    } catch (e) {
+      console.error("Error al migrar campos de tendencias:", e);
+    }
   }
   if (!localStorage.getItem("pos_users")) {
     localStorage.setItem("pos_users", JSON.stringify(SEED_USERS));
