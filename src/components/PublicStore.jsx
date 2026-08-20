@@ -1,6 +1,6 @@
 // PublicStore.jsx - Catálogo Público del Negocio de Belleza y Moda
 import React, { useState } from "react";
-import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock, Edit, Check, X, Minus } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock, Edit, Check, X, Minus, Search } from "lucide-react";
 import { db } from "../utils/db";
 
 export default function PublicStore({ currentUser, products, onRefreshProducts, onNavigate, showToast }) {
