@@ -253,7 +253,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           
           {/* Fila de Buscador y Escáner */}
-          <div className="glass-panel" style={{ padding: "1.5rem" }}>
+          <div className="glass-panel" style={{ padding: "1.5rem", position: "relative", zIndex: 10 }}>
             <div style={{ display: "flex", gap: "1rem" }}>
               <div style={{ position: "relative", flex: 1 }}>
                 <Search size={20} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />

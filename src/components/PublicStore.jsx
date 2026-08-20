@@ -1,6 +1,6 @@
 // PublicStore.jsx - Catálogo Público del Negocio de Belleza y Moda
 import React, { useState } from "react";
-import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock, Edit, Check, X } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, ShoppingBag, Gift, Phone, Award, MapPin, Clock, Edit, Check, X, Minus } from "lucide-react";
 import { db } from "../utils/db";
 
 export default function PublicStore({ currentUser, products, onRefreshProducts, onNavigate, showToast }) {
@@ -11,9 +11,9 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
     ? products
     : products.filter(p => p.category === selectedCategory);
 
-  // Filtrar productos destacados por campo isTrending
-  const featuredProducts = products.filter(p => p.isTrending).length > 0
-    ? products.filter(p => p.isTrending)
+  // Filtrar productos destacados por campo isTrending o isPromo
+  const featuredProducts = products.filter(p => p.isTrending || p.isPromo).length > 0
+    ? products.filter(p => p.isTrending || p.isPromo)
     : products.slice(0, 3);
 
   // Estados para modal de edición rápida para el gerente
@@ -25,6 +25,10 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
   const [editImage, setEditImage] = useState("");
   const [editIsTrending, setEditIsTrending] = useState(false);
   const [editIsPromo, setEditIsPromo] = useState(false);
+
+  // Estados para modal de administración de destacados
+  const [isManagingFeatured, setIsManagingFeatured] = useState(false);
+  const [manageSearch, setManageSearch] = useState("");
 
   const startEditingProduct = (product) => {
     setEditingProduct(product);
@@ -232,7 +236,21 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
       </div>
       {/* Promociones / Destacados */}
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1.5rem 4rem 1.5rem" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "3rem" }}>Nuestras Promociones & Tendencias</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3rem", flexWrap: "wrap", gap: "1rem" }}>
+          <h2 style={{ margin: 0 }}>Nuestras Promociones & Tendencias</h2>
+          {currentUser && currentUser.role === "gerente" && (
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => {
+                setManageSearch("");
+                setIsManagingFeatured(true);
+              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <Sparkles size={16} /> Administrar Destacados
+            </button>
+          )}
+        </div>
         <div className="grid grid-3">
           {featuredProducts.map((product) => (
             <div className="product-card" key={product.id}>
@@ -243,30 +261,63 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                 </span>
                 
                 {currentUser && currentUser.role === "gerente" && (
-                  <button 
-                    onClick={() => startEditingProduct(product)}
-                    style={{
-                      position: "absolute",
-                      top: "10px",
-                      left: "10px",
-                      background: "rgba(255, 255, 255, 0.95)",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "36px",
-                      height: "36px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--primary-color)",
-                      cursor: "pointer",
-                      boxShadow: "var(--shadow-sm)",
-                      zIndex: 20,
-                      transition: "var(--transition-fast)"
-                    }}
-                    title="Editar detalles de la promoción"
-                  >
-                    <Edit size={16} />
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => startEditingProduct(product)}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        left: "10px",
+                        background: "rgba(255, 255, 255, 0.95)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--primary-color)",
+                        cursor: "pointer",
+                        boxShadow: "var(--shadow-sm)",
+                        zIndex: 20,
+                        transition: "var(--transition-fast)"
+                      }}
+                      title="Editar detalles de la promoción"
+                    >
+                      <Edit size={16} />
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(`¿Quitar "${product.name}" de la sección de destacados?`)) {
+                          db.updateProduct({ ...product, isTrending: false, isPromo: false });
+                          onRefreshProducts();
+                          if (showToast) showToast("Producto removido de destacados.", "success");
+                        }
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        right: "10px",
+                        background: "rgba(201, 59, 84, 0.95)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        cursor: "pointer",
+                        boxShadow: "var(--shadow-sm)",
+                        zIndex: 20,
+                        transition: "var(--transition-fast)"
+                      }}
+                      title="Quitar de destacados"
+                    >
+                      <Minus size={16} />
+                    </button>
+                  </>
                 )}
               </div>
               <div className="product-info">
@@ -550,6 +601,97 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                 <Check size={18} /> Guardar Cambios
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL ADMINISTRAR DESTACADOS */}
+      {isManagingFeatured && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-content" style={{ maxWidth: "600px", padding: "2rem" }}>
+            <button className="modal-close" onClick={() => setIsManagingFeatured(false)}>
+              <X size={20} />
+            </button>
+            
+            <h2 style={{ fontSize: "1.4rem", marginBottom: "0.5rem", color: "var(--primary-color)" }}>
+              Administrar Destacados de Portada
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              Marca cuáles productos quieres mostrar en la sección de Tendencias y Promociones.
+            </p>
+
+            <div style={{ position: "relative", marginBottom: "1.5rem" }}>
+              <Search size={16} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Buscar producto por nombre..."
+                value={manageSearch}
+                onChange={(e) => setManageSearch(e.target.value)}
+                style={{ paddingLeft: "36px", width: "100%", boxSizing: "border-box" }}
+              />
+            </div>
+
+            <div style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.75rem", paddingRight: "0.5rem" }}>
+              {products
+                .filter(p => p.name.toLowerCase().includes(manageSearch.toLowerCase()))
+                .map(product => (
+                  <div key={product.id} style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.75rem",
+                    background: "#fbf8f7",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <img src={product.image} alt={product.name} style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "6px" }} />
+                      <div style={{ textAlign: "left" }}>
+                        <strong style={{ fontSize: "0.9rem", display: "block" }}>{product.name}</strong>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{product.category} • ${product.price.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "1rem" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", cursor: "pointer" }}>
+                        <input 
+                          type="checkbox" 
+                          checked={!!product.isTrending} 
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            db.updateProduct({ ...product, isTrending: val });
+                            onRefreshProducts();
+                          }}
+                          style={{ accentColor: "var(--primary-color)", width: "16px", height: "16px" }}
+                        />
+                        <span>Tendencia</span>
+                      </label>
+
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85rem", cursor: "pointer" }}>
+                        <input 
+                          type="checkbox" 
+                          checked={!!product.isPromo} 
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            db.updateProduct({ ...product, isPromo: val });
+                            onRefreshProducts();
+                          }}
+                          style={{ accentColor: "var(--primary-color)", width: "16px", height: "16px" }}
+                        />
+                        <span>Promoción</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setIsManagingFeatured(false)}
+              style={{ width: "100%", marginTop: "1.5rem", padding: "0.8rem" }}
+            >
+              Aceptar
+            </button>
           </div>
         </div>
       )}
