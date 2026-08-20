@@ -54,6 +54,44 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setShowProductModal(true);
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          setImage(dataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveProduct = (e) => {
     e.preventDefault();
 
@@ -411,14 +449,23 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
               </div>
 
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
-                <label className="input-label">URL de Imagen (Opcional)</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="https://..."
-                />
+                <label className="input-label">Imagen del Producto</label>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                  {image && (
+                    <img src={image} alt="Preview" style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", border: "1px solid var(--border-color)" }} />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ fontSize: "0.85rem" }}
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                      Sube una foto desde tu dispositivo (se comprimirá automáticamente)
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem" }}>
