@@ -1,6 +1,6 @@
 // Inventory.jsx - Control de Inventario y Entrada de Mercancía
 import React, { useState } from "react";
-import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X } from "lucide-react";
 import { db } from "../utils/db";
 
 export default function Inventory({ currentUser, products, onRefreshProducts, showToast }) {
@@ -15,6 +15,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [showStockEntryModal, setShowStockEntryModal] = useState(false);
   const [stockEntryProduct, setStockEntryProduct] = useState(null);
   const [stockAddAmount, setStockAddAmount] = useState("");
+
+  // Estado para la etiqueta que se está imprimiendo
+  const [printingLabelProduct, setPrintingLabelProduct] = useState(null);
 
   // Campos de formulario para Producto
   const [name, setName] = useState("");
@@ -171,6 +174,41 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     return matchesSearch && matchesCategory;
   });
 
+  const handleExportCSV = () => {
+    const headers = ["Nombre", "Codigo", "Precio", "Categoria"];
+    const rows = products.map(p => [
+      p.name,
+      p.barcode,
+      p.price.toFixed(2),
+      p.category
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `productos_zabalegui_weprint_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Catálogo exportado con éxito para WePrint.", "success");
+  };
+
+  const handlePrintDirectLabel = (product) => {
+    setPrintingLabelProduct(product);
+    // Esperar a que el DOM monte el contenedor imprimible
+    setTimeout(() => {
+      document.body.classList.add("printing-label");
+      window.print();
+      document.body.classList.remove("printing-label");
+    }, 150);
+  };
+
   return (
     <div style={{ padding: "2rem 1.5rem", maxWidth: "1200px", margin: "0 auto" }}>
       
@@ -190,6 +228,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
         {/* Solo administradores o gerente pueden crear productos nuevos, cajero puede ingresar stock */}
         <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button className="btn btn-secondary" onClick={handleExportCSV} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <Download size={18} /> Exportar para WePrint
+          </button>
           {currentUser.role === "gerente" && (
             <button className="btn btn-primary" onClick={openAddModal}>
               <Plus size={18} /> Nuevo Producto
@@ -328,6 +369,14 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                         </button>
                         {currentUser.role === "gerente" && (
                           <>
+                            <button 
+                              className="btn btn-secondary btn-sm" 
+                              onClick={() => handlePrintDirectLabel(prod)} 
+                              style={{ padding: "0.4rem" }} 
+                              title="Imprimir Etiqueta Térmica"
+                            >
+                              <Printer size={14} />
+                            </button>
                             <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(prod)} style={{ padding: "0.4rem" }}>
                               <Edit size={14} />
                             </button>
@@ -510,6 +559,37 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 <Check size={18} /> Actualizar Inventario
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Elemento imprimible para la etiqueta térmica (oculto en pantalla normal, visible en impresión) */}
+      {printingLabelProduct && (
+        <div className="label-print-area" style={{ display: "none" }}>
+          <div style={{ fontSize: "7.5pt", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "2px" }}>ZABALEGUI</div>
+          <div style={{ fontSize: "8.5pt", fontWeight: "600", maxHeight: "24px", overflow: "hidden", lineHeight: "1.1", marginBottom: "1px" }}>
+            {printingLabelProduct.name}
+          </div>
+          {/* Código de barras usando la fuente Libre Barcode 39 */}
+          <div style={{ 
+            fontFamily: "'Libre Barcode 39', cursive", 
+            fontSize: "26pt", 
+            lineHeight: "1", 
+            margin: "2px 0",
+            letterSpacing: "3px"
+          }}>
+            {`*${printingLabelProduct.barcode}*`}
+          </div>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            width: "100%", 
+            fontSize: "7.5pt", 
+            borderTop: "1px dashed #333", 
+            paddingTop: "2px",
+            marginTop: "2px"
+          }}>
+            <span>{printingLabelProduct.barcode}</span>
+            <strong style={{ fontSize: "8.5pt" }}>${printingLabelProduct.price.toFixed(2)}</strong>
           </div>
         </div>
       )}

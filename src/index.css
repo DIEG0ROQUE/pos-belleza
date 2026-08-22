@@ -1,5 +1,4 @@
-/* index.css - Diseño Premium y Moderno para Boutique & POS */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Libre+Barcode+39&display=swap');
 
 :root {
   --primary-color: #311d20;       /* Marrón Chocolate Oscuro */
@@ -541,6 +540,38 @@ h1, h2, h3, h4, .brand-font {
 @media (min-width: 768px) {
   .desktop-only-text {
     display: inline;
+  }
+}
+
+/* Estilos para impresión de etiquetas de código de barras en Holyhah */
+@media print {
+  body.printing-label * {
+    visibility: hidden !important;
+  }
+  body.printing-label .label-print-area,
+  body.printing-label .label-print-area * {
+    visibility: visible !important;
+  }
+  body.printing-label .label-print-area {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 50mm !important;
+    height: 30mm !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  @page {
+    size: 50mm 30mm;
+    margin: 0;
   }
 }
 
