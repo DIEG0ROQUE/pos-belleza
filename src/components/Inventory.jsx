@@ -20,6 +20,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   // Estado para la etiqueta que se está imprimiendo
   const [printingLabelProduct, setPrintingLabelProduct] = useState(null);
 
+  // Estado para los productos seleccionados mediante checkbox
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+
   // Campos de formulario para Producto
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Maquillaje");
@@ -195,10 +198,20 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     return matchesSearch && matchesCategory;
   });
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (targetProductsList = filteredProducts) => {
+    // Si pasamos un array de IDs, filtrar de la lista global de productos
+    const productsToExport = Array.isArray(targetProductsList) && typeof targetProductsList[0] === "string"
+      ? products.filter(p => targetProductsList.includes(p.id))
+      : targetProductsList;
+
+    if (productsToExport.length === 0) {
+      showToast("No hay productos seleccionados para exportar.", "warning");
+      return;
+    }
+
     try {
-      // 1. Estructurar datos con encabezados claros que WePrint pueda mapear individualmente
-      const data = products.map(p => ({
+      // 1. Estructurar datos con encabezados claros que WePrint pueda mapear
+      const data = productsToExport.map(p => ({
         "Codigo": p.barcode,
         "Nombre": p.name,
         "Precio": `$${p.price.toFixed(2)}`,
@@ -210,9 +223,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
 
-      // 3. Escribir archivo binario nativo de Excel .xlsx
+      // 3. Escribir archivo binario de Excel
       XLSX.writeFile(workbook, "productos_zabalegui_weprint.xlsx");
-      showToast("Catálogo exportado en Excel (.xlsx) con éxito.", "success");
+      showToast(`Exportadas ${productsToExport.length} etiquetas a Excel con éxito.`, "success");
     } catch (err) {
       showToast("Error al exportar Excel: " + err.message, "error");
     }
@@ -246,10 +259,30 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
         </div>
 
         {/* Solo administradores o gerente pueden crear productos nuevos, cajero puede ingresar stock */}
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button className="btn btn-secondary" onClick={handleExportExcel} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Download size={18} /> Exportar Excel para WePrint
-          </button>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {selectedProductIds.length > 0 ? (
+            <>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => handleExportExcel(selectedProductIds)} 
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary-color)", color: "white" }}
+              >
+                <Download size={18} /> Exportar Seleccionados ({selectedProductIds.length})
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setSelectedProductIds([])}
+                style={{ padding: "0.5rem 0.8rem", fontSize: "0.85rem" }}
+                title="Limpiar selección"
+              >
+                Limpiar ({selectedProductIds.length})
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-secondary" onClick={() => handleExportExcel(filteredProducts)} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <Download size={18} /> Exportar Vista Actual ({filteredProducts.length})
+            </button>
+          )}
           {currentUser.role === "gerente" && (
             <button className="btn btn-primary" onClick={openAddModal}>
               <Plus size={18} /> Nuevo Producto
@@ -321,6 +354,22 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
           <thead>
             <tr style={{ background: "rgba(49, 29, 32, 0.04)", borderBottom: "1px solid var(--border-color)" }}>
+              <th style={{ padding: "1rem", width: "40px", textAlign: "center" }}>
+                <input 
+                  type="checkbox" 
+                  checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const filteredIds = filteredProducts.map(p => p.id);
+                      setSelectedProductIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+                    } else {
+                      const filteredIds = filteredProducts.map(p => p.id);
+                      setSelectedProductIds(prev => prev.filter(id => !filteredIds.includes(id)));
+                    }
+                  }}
+                  style={{ width: "16px", height: "16px", accentColor: "var(--primary-color)", cursor: "pointer" }}
+                />
+              </th>
               <th style={{ padding: "1rem" }}>Imagen</th>
               <th style={{ padding: "1rem" }}>Producto / Código</th>
               <th style={{ padding: "1rem" }}>Categoría</th>
@@ -333,7 +382,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: "4rem", textAlign: "center", color: "var(--text-muted)" }}>
+                <td colSpan={8} style={{ padding: "4rem", textAlign: "center", color: "var(--text-muted)" }}>
                   <PackageOpen size={48} style={{ opacity: 0.3, marginBottom: "1rem" }} />
                   <p>No se encontraron productos en el inventario.</p>
                 </td>
@@ -341,11 +390,28 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
             ) : (
               filteredProducts.map(prod => {
                 const isLowStock = prod.stock <= prod.minStock;
+                const isSelected = selectedProductIds.includes(prod.id);
                 return (
                   <tr key={prod.id} style={{ 
                     borderBottom: "1px solid #f0ebe9",
-                    background: isLowStock ? "rgba(217, 119, 6, 0.03)" : "transparent"
+                    background: isSelected 
+                      ? "rgba(197, 155, 142, 0.15)" 
+                      : (isLowStock ? "rgba(217, 119, 6, 0.03)" : "transparent")
                   }}>
+                    <td style={{ padding: "0.75rem 1rem", textAlign: "center" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProductIds(prev => [...prev, prod.id]);
+                          } else {
+                            setSelectedProductIds(prev => prev.filter(id => id !== prod.id));
+                          }
+                        }}
+                        style={{ width: "16px", height: "16px", accentColor: "var(--primary-color)", cursor: "pointer" }}
+                      />
+                    </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <img src={prod.image} alt={prod.name} style={{ width: "45px", height: "45px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e0d9d6" }} />
                     </td>
