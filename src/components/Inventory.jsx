@@ -195,21 +195,20 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   });
 
   const handleExportCSV = () => {
-    // WePrint en español y Excel prefieren punto y coma (;) como delimitador
-    const headers = ["Nombre", "Codigo", "Precio", "Categoria"];
+    // Formato ultra-compatible para WePrint móvil:
+    // 1. SIN FILA DE ENCABEZADO (evita que la app intente leer letras como código de barras y falle).
+    // 2. Columna 1: Código de barras (solo dígitos) como identificador primario.
+    // 3. Columna 2: Nombre del producto (limpiando comas y punto y comas).
+    // 4. Columna 3: Precio con signo de pesos (ej. $100.00).
     const rows = products.map(p => [
-      p.name.replace(/;/g, " "), // Evitar romper delimitadores
       p.barcode,
-      p.price.toFixed(2),
-      p.category
+      p.name.replace(/[,;]/g, " "), // Limpiar caracteres delimitadores
+      `$${p.price.toFixed(2)}`
     ]);
 
-    const csvContent = [
-      headers.join(";"),
-      ...rows.map(row => row.join(";"))
-    ].join("\n");
+    const csvContent = rows.map(row => row.join(",")).join("\n");
 
-    // Crear un blob estándar sin BOM (muchas apps móviles fallan si detectan bytes BOM al inicio)
+    // Crear un blob estándar sin BOM
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
