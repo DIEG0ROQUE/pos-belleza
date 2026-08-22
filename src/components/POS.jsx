@@ -38,23 +38,66 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     setSearchResults(filtered.slice(0, 5));
   }, [searchQuery, products]);
 
-  // Autofocus y captura global de teclado para escáner físico de pistola
+  // Captura global de teclado para escáner físico de pistola en fase de captura (sin escribir en pantalla)
   useEffect(() => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
+    let barcodeBuffer = "";
+    let lastKeyTime = Date.now();
 
-    const handleGlobalKeyPress = (e) => {
-      // Si el elemento activo no es otro input (como el de clientes o pago), enfocar el buscador al tipear
-      if (document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
-        if (searchInputRef.current && e.key.length === 1 && /[0-9a-zA-Z]/.test(e.key)) {
-          searchInputRef.current.focus();
+    const handleGlobalKeyDown = (e) => {
+      // Ignorar si se está enfocando otro input (como búsqueda de clientes o efectivo recibido)
+      if (
+        document.activeElement.tagName === "INPUT" && 
+        document.activeElement !== searchInputRef.current
+      ) {
+        return;
+      }
+
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTime;
+      lastKeyTime = currentTime;
+
+      // Las pistolas envían teclas extremadamente rápido (< 50ms por carácter)
+      const isFast = timeDiff < 50;
+
+      if (e.key === "Enter") {
+        if (barcodeBuffer.length >= 4) {
+          const barcode = barcodeBuffer;
+          barcodeBuffer = "";
+          
+          const prod = products.find(p => p.barcode === barcode);
+          if (prod) {
+            playBeep();
+            addToCart(prod);
+            showToast(`Añadido: ${prod.name}`, "success");
+            
+            // Si el buscador manual estaba enfocado, limpiarlo de inmediato
+            if (document.activeElement === searchInputRef.current) {
+              setSearchQuery("");
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+        barcodeBuffer = "";
+      } else if (e.key.length === 1 && /[0-9a-zA-Z]/.test(e.key)) {
+        if (isFast || barcodeBuffer.length === 0) {
+          barcodeBuffer += e.key;
+          // Si es parte de una ráfaga rápida del escáner, bloqueamos que se pinte en pantalla
+          if (isFast && barcodeBuffer.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        } else {
+          // Si el tipeo es lento, es un humano escribiendo manualmente en el buscador
+          barcodeBuffer = e.key;
         }
       }
     };
-    window.addEventListener("keydown", handleGlobalKeyPress);
-    return () => window.removeEventListener("keydown", handleGlobalKeyPress);
-  }, []);
+
+    window.addEventListener("keydown", handleGlobalKeyDown, true); // true activa la fase de captura
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown, true);
+  }, [products]);
 
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter") {
