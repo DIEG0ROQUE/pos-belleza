@@ -16,6 +16,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   // Control de escáner de cámara
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Estados de checkout/pago
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -36,6 +37,51 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     );
     setSearchResults(filtered.slice(0, 5));
   }, [searchQuery, products]);
+
+  // Autofocus y captura global de teclado para escáner físico de pistola
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+
+    const handleGlobalKeyPress = (e) => {
+      // Si el elemento activo no es otro input (como el de clientes o pago), enfocar el buscador al tipear
+      if (document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+        if (searchInputRef.current && e.key.length === 1 && /[0-9a-zA-Z]/.test(e.key)) {
+          searchInputRef.current.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyPress);
+    return () => window.removeEventListener("keydown", handleGlobalKeyPress);
+  }, []);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      const cleanQuery = searchQuery.trim();
+      if (!cleanQuery) return;
+
+      // 1. Coincidencia exacta de código de barras
+      const barcodeMatch = products.find(p => p.barcode === cleanQuery);
+      if (barcodeMatch) {
+        playBeep();
+        addToCart(barcodeMatch);
+        showToast(`Añadido: ${barcodeMatch.name}`, "success");
+        setSearchQuery("");
+        e.preventDefault();
+        return;
+      }
+      
+      // 2. Coincidencia por autocompletado (añadir el primero)
+      if (searchResults.length > 0) {
+        playBeep();
+        addToCart(searchResults[0]);
+        showToast(`Añadido: ${searchResults[0].name}`, "success");
+        setSearchQuery("");
+        e.preventDefault();
+      }
+    }
+  };
 
   // Sonido de Beep sintético para escaneo exitoso
   const playBeep = () => {
@@ -258,11 +304,13 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
               <div style={{ position: "relative", flex: 1 }}>
                 <Search size={20} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   className="input-field"
                   placeholder="Buscar por Nombre de producto o Código de barras..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   style={{ paddingLeft: "40px", width: "100%", boxSizing: "border-box" }}
                 />
                 
