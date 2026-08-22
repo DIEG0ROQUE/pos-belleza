@@ -195,24 +195,26 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   });
 
   const handleExportCSV = () => {
+    // WePrint en español y Excel prefieren punto y coma (;) como delimitador
     const headers = ["Nombre", "Codigo", "Precio", "Categoria"];
     const rows = products.map(p => [
-      p.name,
+      p.name.replace(/;/g, " "), // Evitar romper delimitadores
       p.barcode,
       p.price.toFixed(2),
       p.category
     ]);
 
     const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(","))
+      headers.join(";"),
+      ...rows.map(row => row.join(";"))
     ].join("\n");
 
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+    // Crear un blob estándar sin BOM (muchas apps móviles fallan si detectan bytes BOM al inicio)
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `productos_zabalegui_weprint_${Date.now()}.csv`);
+    link.setAttribute("download", `productos_zabalegui_weprint.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
