@@ -31,6 +31,18 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
   const categories = ["Maquillaje", "Belleza", "Ropa"];
 
+  const generateUniqueBarcode = () => {
+    let code = "";
+    let isUnique = false;
+    let attempts = 0;
+    while (!isUnique && attempts < 100) {
+      code = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // 10 dígitos
+      isUnique = !products.some(p => p.barcode === code);
+      attempts++;
+    }
+    return code;
+  };
+
   const openAddModal = () => {
     setEditingProduct(null);
     setName("");
@@ -39,7 +51,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setCost("");
     setStock("");
     setMinStock("3");
-    setBarcode(Math.floor(10000000 + Math.random() * 90000000).toString()); // Barcode aleatorio default
+    setBarcode(generateUniqueBarcode());
     setImage("https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"); // Placeholder estético
     setShowProductModal(true);
   };
@@ -95,8 +107,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     }
   };
 
-  const handleSaveProduct = (e) => {
-    e.preventDefault();
+  const handleSaveProduct = (e, shouldPrintLabel = false) => {
+    if (e) e.preventDefault();
 
     if (!name || !price || !cost || !stock || !barcode) {
       showToast("Llene todos los campos marcados con (*)", "error");
@@ -114,9 +126,12 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       image: image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"
     };
 
+    let savedProduct = null;
+
     if (editingProduct) {
       // Editar
-      db.updateProduct({ ...productData, id: editingProduct.id });
+      savedProduct = { ...productData, id: editingProduct.id };
+      db.updateProduct(savedProduct);
       showToast("Producto actualizado correctamente.", "success");
     } else {
       // Validar duplicado de código de barras
@@ -125,12 +140,17 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
         showToast("Este código de barras ya pertenece a otro producto.", "error");
         return;
       }
-      db.addProduct(productData);
+      savedProduct = db.addProduct(productData);
       showToast("Producto agregado al inventario.", "success");
     }
 
     onRefreshProducts();
     setShowProductModal(false);
+
+    // Si se especificó imprimir, gatillar la impresión directamente
+    if (shouldPrintLabel && savedProduct) {
+      handlePrintDirectLabel(savedProduct);
+    }
   };
 
   const handleDeleteProduct = (id) => {
@@ -432,14 +452,26 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
                 <div className="input-group">
                   <label className="input-label">Código de Barras *</label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    placeholder="Código de barras"
-                    required
-                  />
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={barcode}
+                      onChange={(e) => setBarcode(e.target.value)}
+                      placeholder="Código de barras"
+                      style={{ flex: 1, minWidth: 0 }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setBarcode(generateUniqueBarcode())}
+                      style={{ padding: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Generar Código Único"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -517,9 +549,23 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 </div>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem" }}>
-                <Check size={18} /> Guardar Producto
-              </button>
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+                <button 
+                  type="submit" 
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+                >
+                  <Check size={16} /> Guardar Solo
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={() => handleSaveProduct(null, true)}
+                  style={{ flex: 1.5, padding: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+                >
+                  <Printer size={16} /> Guardar e Imprimir
+                </button>
+              </div>
             </form>
           </div>
         </div>
