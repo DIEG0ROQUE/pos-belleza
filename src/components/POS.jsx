@@ -52,12 +52,19 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         return;
       }
 
+      // Ignorar teclas especiales de control
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") {
+        return;
+      }
+
       const currentTime = Date.now();
       const timeDiff = currentTime - lastKeyTime;
       lastKeyTime = currentTime;
 
-      // Las pistolas envían teclas extremadamente rápido (< 50ms por carácter)
-      const isFast = timeDiff < 50;
+      // Limpiar el buffer si pasó mucho tiempo (más de 150ms) entre teclas
+      if (timeDiff > 150) {
+        barcodeBuffer = "";
+      }
 
       if (e.key === "Enter") {
         if (barcodeBuffer.length >= 4) {
@@ -70,9 +77,11 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             addToCart(prod);
             showToast(`Añadido: ${prod.name}`, "success");
             
-            // Si el buscador manual estaba enfocado, limpiarlo de inmediato
-            if (document.activeElement === searchInputRef.current) {
+            // Si el buscador manual estaba enfocado, limpiarlo y quitar el foco
+            if (searchInputRef.current) {
+              searchInputRef.current.value = "";
               setSearchQuery("");
+              searchInputRef.current.blur(); // Quitar foco para que los siguientes escaneos sean 100% silenciosos
             }
             e.preventDefault();
             e.stopPropagation();
@@ -81,16 +90,24 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         }
         barcodeBuffer = "";
       } else if (e.key.length === 1 && /[0-9a-zA-Z]/.test(e.key)) {
-        if (isFast || barcodeBuffer.length === 0) {
-          barcodeBuffer += e.key;
-          // Si es parte de una ráfaga rápida del escáner, bloqueamos que se pinte en pantalla
-          if (isFast && barcodeBuffer.length > 1) {
+        barcodeBuffer += e.key;
+
+        // Si el buscador NO está enfocado, capturamos silenciosamente y prevenimos que se pinte en pantalla
+        if (document.activeElement !== searchInputRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+        } else {
+          // Si el buscador SÍ está enfocado, pero las teclas llegan muy rápido (escáner), bloqueamos el tipeo
+          if (timeDiff < 50 && barcodeBuffer.length > 1) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Limpiar del buscador el primer dígito que se haya colado
+            if (searchInputRef.current) {
+              searchInputRef.current.value = "";
+              setSearchQuery("");
+            }
           }
-        } else {
-          // Si el tipeo es lento, es un humano escribiendo manualmente en el buscador
-          barcodeBuffer = e.key;
         }
       }
     };
@@ -111,6 +128,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         addToCart(barcodeMatch);
         showToast(`Añadido: ${barcodeMatch.name}`, "success");
         setSearchQuery("");
+        if (searchInputRef.current) searchInputRef.current.blur();
         e.preventDefault();
         return;
       }
@@ -121,6 +139,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         addToCart(searchResults[0]);
         showToast(`Añadido: ${searchResults[0].name}`, "success");
         setSearchQuery("");
+        if (searchInputRef.current) searchInputRef.current.blur();
         e.preventDefault();
       }
     }
