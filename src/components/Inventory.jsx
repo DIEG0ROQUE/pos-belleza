@@ -1,6 +1,7 @@
 // Inventory.jsx - Control de Inventario y Entrada de Mercancía
 import React, { useState } from "react";
 import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X } from "lucide-react";
+import * as XLSX from "xlsx";
 import { db } from "../utils/db";
 
 export default function Inventory({ currentUser, products, onRefreshProducts, showToast }) {
@@ -194,31 +195,27 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     return matchesSearch && matchesCategory;
   });
 
-  const handleExportCSV = () => {
-    // Formato ultra-compatible para WePrint móvil en español:
-    // 1. SIN FILA DE ENCABEZADO (evita fallos de lectura de letras).
-    // 2. Columna 1: Código de barras (solo dígitos).
-    // 3. Columna 2: Nombre del producto (limpiando punto y comas).
-    // 4. Columna 3: Precio con signo de pesos (ej. $100.00).
-    // 5. Delimitador: Punto y coma (;) para que WePrint en español separe las columnas.
-    const rows = products.map(p => [
-      p.barcode,
-      p.name.replace(/;/g, " "), // Limpiar punto y comas
-      `$${p.price.toFixed(2)}`
-    ]);
+  const handleExportExcel = () => {
+    try {
+      // 1. Estructurar datos con encabezados claros que WePrint pueda mapear individualmente
+      const data = products.map(p => ({
+        "Codigo": p.barcode,
+        "Nombre": p.name,
+        "Precio": `$${p.price.toFixed(2)}`,
+        "Categoria": p.category
+      }));
 
-    const csvContent = rows.map(row => row.join(";")).join("\n");
+      // 2. Crear hoja y libro
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
 
-    // Crear un blob estándar sin BOM
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `productos_zabalegui_weprint.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast("Catálogo exportado con éxito para WePrint.", "success");
+      // 3. Escribir archivo binario nativo de Excel .xlsx
+      XLSX.writeFile(workbook, "productos_zabalegui_weprint.xlsx");
+      showToast("Catálogo exportado en Excel (.xlsx) con éxito.", "success");
+    } catch (err) {
+      showToast("Error al exportar Excel: " + err.message, "error");
+    }
   };
 
   const handlePrintDirectLabel = (product) => {
@@ -250,8 +247,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
         {/* Solo administradores o gerente pueden crear productos nuevos, cajero puede ingresar stock */}
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button className="btn btn-secondary" onClick={handleExportCSV} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Download size={18} /> Exportar para WePrint
+          <button className="btn btn-secondary" onClick={handleExportExcel} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <Download size={18} /> Exportar Excel para WePrint
           </button>
           {currentUser.role === "gerente" && (
             <button className="btn btn-primary" onClick={openAddModal}>
