@@ -13,12 +13,39 @@ import ClientLoyalty from "./components/ClientLoyalty";
 import Finances from "./components/Finances";
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [currentView, setCurrentView] = useState("store"); // store, auth, pos, inventory, dashboard, loyalty
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("pos_current_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [currentView, setCurrentView] = useState(() => {
+    const savedUser = localStorage.getItem("pos_current_user");
+    const savedView = localStorage.getItem("pos_current_view");
+    if (savedUser) {
+      const u = JSON.parse(savedUser);
+      return savedView || (u.role === "gerente" ? "dashboard" : (u.role === "cajero" ? "pos" : "loyalty"));
+    }
+    return "store";
+  });
   const [products, setProducts] = useState([]);
   
   // Custom Toast State
   const [toast, setToast] = useState({ message: "", type: "success", show: false });
+
+  // Sincronizar sesión con localStorage al cambiar currentUser o currentView
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem("pos_current_user", JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem("pos_current_user");
+      localStorage.removeItem("pos_current_view");
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem("pos_current_view", currentView);
+    }
+  }, [currentView, currentUser]);
 
   // Cargar productos iniciales
   useEffect(() => {
@@ -52,6 +79,8 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentView("store");
+    localStorage.removeItem("pos_current_user");
+    localStorage.removeItem("pos_current_view");
     showToast("Sesión cerrada correctamente.", "success");
   };
 
