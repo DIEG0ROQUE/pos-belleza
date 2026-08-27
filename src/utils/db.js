@@ -727,5 +727,142 @@ export const db = {
     shifts[activeIndex] = closedShift;
     db.saveShifts(shifts);
     return closedShift;
+  },
+
+  // --- APIS DE PROVEEDORES ---
+  getSuppliers: () => {
+    const data = localStorage.getItem("pos_suppliers");
+    if (!data) {
+      const seed = [
+        {
+          id: "sup-1",
+          name: "Distribuidora Belleza Mexicana S.A.",
+          phone: "9515568822",
+          email: "ventas@bellezamex.com",
+          address: "Av. Reforma 402, Oaxaca, Centro",
+          category: "Maquillaje & Cosméticos",
+          notes: "Proveedor principal de labiales, esmaltes y cosméticos de temporada.",
+          image: "https://images.unsplash.com/photo-1556740758-90de374c12ad?w=150&q=80"
+        },
+        {
+          id: "sup-2",
+          name: "Moda y Estilo Textil del Sur",
+          phone: "9514483311",
+          email: "pedidos@modatextilsur.com",
+          address: "Independencia 702, Oaxaca, Centro",
+          category: "Ropa & Vestidos",
+          notes: "Surtido de blusas y vestidos florales. Entregan cada miércoles.",
+          image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80"
+        }
+      ];
+      db.saveSuppliers(seed);
+      return seed;
+    }
+    return JSON.parse(data);
+  },
+
+  saveSuppliers: (suppliers) => {
+    localStorage.setItem("pos_suppliers", JSON.stringify(suppliers));
+  },
+
+  addSupplier: (supplierData) => {
+    const suppliers = db.getSuppliers();
+    const newSupplier = {
+      ...supplierData,
+      id: "sup-" + Math.floor(Math.random() * 1000000)
+    };
+    suppliers.push(newSupplier);
+    db.saveSuppliers(suppliers);
+    return newSupplier;
+  },
+
+  updateSupplier: (updatedSupplier) => {
+    const suppliers = db.getSuppliers();
+    const index = suppliers.findIndex(s => s.id === updatedSupplier.id);
+    if (index !== -1) {
+      suppliers[index] = updatedSupplier;
+      db.saveSuppliers(suppliers);
+    }
+    return updatedSupplier;
+  },
+
+  deleteSupplier: (id) => {
+    const suppliers = db.getSuppliers();
+    const filtered = suppliers.filter(s => s.id !== id);
+    db.saveSuppliers(filtered);
+  },
+
+  // --- APIS DE GASTOS ---
+  getExpenses: () => {
+    const data = localStorage.getItem("pos_expenses");
+    if (!data) {
+      const seed = [
+        {
+          id: "exp-1",
+          date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + " 12:00:00",
+          category: "Renta",
+          description: "Renta mensual de local comercial (Armenta y López 1025)",
+          amount: 8500,
+          notes: "Mes de Agosto liquidado completo"
+        },
+        {
+          id: "exp-2",
+          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + " 10:30:00",
+          category: "Sueldos",
+          description: "Pago de quincena a empleado de mostrador",
+          amount: 3200,
+          notes: "Primera quincena de Agosto"
+        },
+        {
+          id: "exp-3",
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + " 17:00:00",
+          category: "Servicios",
+          description: "Recibo de energía eléctrica CFE",
+          amount: 1150,
+          notes: "Consumo bimestral"
+        },
+        {
+          id: "exp-4",
+          date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + " 15:45:00",
+          category: "Internet",
+          description: "Pago mensual Telmex Infinitum",
+          amount: 549,
+          notes: "Paquete de 150 Megas"
+        },
+        {
+          id: "exp-5",
+          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + " 11:15:00",
+          category: "Proveedor",
+          description: "Compra lote labiales Matte - Distribuidora Belleza Mexicana",
+          amount: 4500,
+          notes: "Factura #1032"
+        }
+      ];
+      db.saveExpenses(seed);
+      return seed;
+    }
+    return JSON.parse(data);
+  },
+
+  saveExpenses: (expenses) => {
+    localStorage.setItem("pos_expenses", JSON.stringify(expenses));
+  },
+
+  addExpense: (expenseData) => {
+    const expenses = db.getExpenses();
+    const newExpense = {
+      ...expenseData,
+      id: "exp-" + Math.floor(Math.random() * 1000000),
+      date: expenseData.date || new Date().toISOString().replace("T", " ").slice(0, 19)
+    };
+    expenses.push(newExpense);
+    db.saveExpenses(expenses);
+    return newExpense;
+  },
+
+  deleteExpense: (id) => {
+    const expenses = db.getExpenses();
+    const filtered = expenses.filter(e => e.id !== id);
+    db.saveExpenses(filtered);
   }
 };

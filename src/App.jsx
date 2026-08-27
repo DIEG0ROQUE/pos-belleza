@@ -1,6 +1,6 @@
 // App.jsx - Controlador de Navegación Global y Manejo de Sesiones
 import React, { useState, useEffect } from "react";
-import { Sparkles, LogOut, ShoppingBag, Award, BarChart2, Package, LogIn, AlertCircle } from "lucide-react";
+import { Sparkles, LogOut, ShoppingBag, Award, BarChart2, Package, LogIn, AlertCircle, Briefcase } from "lucide-react";
 import { db } from "./utils/db";
 
 // Componentes
@@ -10,6 +10,7 @@ import POS from "./components/POS";
 import Inventory from "./components/Inventory";
 import Dashboard from "./components/Dashboard";
 import ClientLoyalty from "./components/ClientLoyalty";
+import Finances from "./components/Finances";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -125,6 +126,15 @@ export default function App() {
             </button>
           )}
 
+          {currentUser && currentUser.role === "gerente" && (
+            <button 
+              className={`nav-link ${currentView === "finances" ? "active" : ""}`}
+              onClick={() => setCurrentView("finances")}
+            >
+              <Briefcase size={18} /> Finanzas & Proveedores
+            </button>
+          )}
+
           {/* Botón de Logout */}
           {currentUser && (
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -177,6 +187,14 @@ export default function App() {
           <Dashboard 
             products={products} 
             onRefreshProducts={refreshProducts} 
+            showToast={showToast} 
+          />
+        )}
+        
+        {currentView === "finances" && currentUser && currentUser.role === "gerente" && (
+          <Finances 
+            currentUser={currentUser} 
+            products={products} 
             showToast={showToast} 
           />
         )}
