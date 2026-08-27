@@ -105,6 +105,16 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     const shiftSales = sales.filter(s => s.shiftId === closedShift.id || 
       (!s.shiftId && s.date >= closedShift.startTime && s.date <= closedShift.endTime));
 
+    let spaceRentalTotal = 0;
+    shiftSales.forEach(s => {
+      s.items.forEach(item => {
+        if (item.isSpaceRental) {
+          spaceRentalTotal += item.price * item.quantity;
+        }
+      });
+    });
+    const ownSales = closedShift.totalSales - spaceRentalTotal;
+
     const popupWin = window.open("", "_blank", "width=380,height=600");
     if (!popupWin) {
       showToast("Por favor permita las ventanas emergentes para imprimir.", "warning");
@@ -204,6 +214,14 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             <div class="totals-row">
               <span>Ventas Tarj/Trans:</span>
               <span>$${closedShift.nonCashSales.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px dashed #555; padding-top: 3px; font-style: italic;">
+              <span>- Propias Zabalegui:</span>
+              <span>$${ownSales.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="font-style: italic; color: #555;">
+              <span>- Renta Espacio:</span>
+              <span>$${spaceRentalTotal.toFixed(2)}</span>
             </div>
             <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px;">
               <span>Efectivo Esperado:</span>
@@ -526,7 +544,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         cashierName: currentUser.name,
         customerId: associatedClient ? associatedClient.id : null,
         customerName: associatedClient ? associatedClient.name : "Público General",
-        items: cart.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price })),
+        items: cart.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, isSpaceRental: !!i.isSpaceRental })),
         subtotal,
         discount,
         total,
@@ -1174,6 +1192,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         let cashSales = 0;
         let cardSales = 0;
         let totalSalesCount = shiftSales.length;
+        let spaceRentalTotal = 0;
 
         shiftSales.forEach(s => {
           if (s.paymentMethod === "Efectivo") {
@@ -1181,10 +1200,17 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
           } else {
             cardSales += s.total;
           }
+          // Sumar productos en renta de espacio
+          s.items.forEach(item => {
+            if (item.isSpaceRental) {
+              spaceRentalTotal += item.price * item.quantity;
+            }
+          });
         });
 
         const expectedCash = activeShift.openingBalance + cashSales;
         const totalVendido = cashSales + cardSales;
+        const ownTotal = totalVendido - spaceRentalTotal;
 
         return (
           <div className="modal-overlay" style={{ zIndex: 1000 }}>
@@ -1215,6 +1241,19 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                   <span>Ventas Tarjeta/Trans:</span>
                   <strong>+${cardSales.toFixed(2)}</strong>
                 </div>
+
+                {/* Desglose de Renta de Espacio vs Propias */}
+                <div style={{ borderTop: "1px dashed var(--border-color)", margin: "0.5rem 0", paddingTop: "0.5rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "0.3rem 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                    <span>Ventas Propias Zabalegui:</span>
+                    <strong>${ownTotal.toFixed(2)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "0.3rem 0", fontSize: "0.9rem", color: "#d97706" }}>
+                    <span>Renta de Espacio (Consignación):</span>
+                    <strong>${spaceRentalTotal.toFixed(2)}</strong>
+                  </div>
+                </div>
+
                 <div style={{ 
                   display: "flex", 
                   justifyContent: "space-between", 

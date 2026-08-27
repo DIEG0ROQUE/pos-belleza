@@ -32,6 +32,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [minStock, setMinStock] = useState("3");
   const [barcode, setBarcode] = useState("");
   const [image, setImage] = useState("");
+  const [isSpaceRental, setIsSpaceRental] = useState(false);
 
   const categories = ["Maquillaje", "Belleza", "Ropa"];
 
@@ -57,6 +58,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setMinStock("3");
     setBarcode(generateUniqueBarcode());
     setImage("https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"); // Placeholder estético
+    setIsSpaceRental(false);
     setShowProductModal(true);
   };
 
@@ -70,6 +72,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setMinStock(prod.minStock.toString());
     setBarcode(prod.barcode);
     setImage(prod.image);
+    setIsSpaceRental(prod.isSpaceRental || false);
     setShowProductModal(true);
   };
 
@@ -127,7 +130,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       stock: parseInt(stock),
       minStock: parseInt(minStock),
       barcode,
-      image: image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"
+      image: image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80",
+      isSpaceRental: !!isSpaceRental
     };
 
     let savedProduct = null;
@@ -416,8 +420,22 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                       <img src={prod.image} alt={prod.name} style={{ width: "45px", height: "45px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e0d9d6" }} />
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
-                      <strong style={{ display: "block", fontSize: "0.95rem" }}>{prod.name}</strong>
-                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Cod: {prod.barcode}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <strong style={{ fontSize: "0.95rem" }}>{prod.name}</strong>
+                        {prod.isSpaceRental && (
+                          <span style={{
+                            fontSize: "0.7rem",
+                            background: "rgba(197, 146, 146, 0.2)",
+                            color: "var(--primary-color)",
+                            padding: "0.1rem 0.35rem",
+                            borderRadius: "4px",
+                            fontWeight: "600"
+                          }}>
+                            Renta
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "block" }}>Cod: {prod.barcode}</span>
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <span style={{
@@ -592,6 +610,20 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                     required
                   />
                 </div>
+              </div>
+
+              {/* Checkbox para Renta de Espacio */}
+              <div className="input-group" style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input 
+                  type="checkbox" 
+                  id="isSpaceRental"
+                  checked={isSpaceRental}
+                  onChange={(e) => setIsSpaceRental(e.target.checked)}
+                  style={{ width: "18px", height: "18px", accentColor: "var(--primary-color)", cursor: "pointer", margin: 0 }}
+                />
+                <label htmlFor="isSpaceRental" style={{ fontSize: "0.95rem", fontWeight: "600", color: "var(--text-dark)", cursor: "pointer", userSelect: "none" }}>
+                  ¿Es renta de espacio (consignación de otra empresa)?
+                </label>
               </div>
 
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
