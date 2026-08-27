@@ -1,8 +1,8 @@
 // Dashboard.jsx - Métricas e Indicadores Clave para el Gerente e Historial de Transacciones
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   DollarSign, ShoppingCart, UserCheck, TrendingUp, Award, AlertCircle, 
-  Calendar, Search, Printer, X, Eye, FileText, List, Trash2 
+  Calendar, Search, Printer, X, Eye, FileText, List, Trash2, Plus, Edit, Save 
 } from "lucide-react";
 import { db } from "../utils/db";
 
