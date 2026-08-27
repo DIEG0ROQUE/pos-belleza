@@ -24,6 +24,217 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   const [cashReceived, setCashReceived] = useState("");
   const [lastSaleReceipt, setLastSaleReceipt] = useState(null); // Para mostrar ticket al finalizar
 
+  // --- CONTROL DE TURNOS ---
+  const [activeShift, setActiveShift] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState("");
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  
+  // Formulario Iniciar Turno
+  const [cajeroName, setCajeroName] = useState(currentUser ? currentUser.name : "");
+  const [openingBalance, setOpeningBalance] = useState("");
+
+  // Formulario Cerrar Turno
+  const [closingBalance, setClosingBalance] = useState("");
+
+  // Cargar turno activo al iniciar
+  useEffect(() => {
+    setActiveShift(db.getActiveShift());
+  }, []);
+
+  // Temporizador en tiempo real desde que inició el turno
+  useEffect(() => {
+    if (!activeShift) {
+      setElapsedTime("");
+      return;
+    }
+
+    const updateTimer = () => {
+      const start = new Date(activeShift.startTime).getTime();
+      const now = Date.now();
+      const diff = now - start;
+      if (diff < 0) {
+        setElapsedTime("00:00:00");
+        return;
+      }
+      const hrs = Math.floor(diff / 3600000).toString().padStart(2, "0");
+      const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
+      const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+      setElapsedTime(`${hrs}:${mins}:${secs}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeShift]);
+
+  const handleStartShift = (e) => {
+    e.preventDefault();
+    if (!cajeroName.trim()) {
+      showToast("Por favor ingrese el nombre del cajero.", "error");
+      return;
+    }
+    try {
+      const shift = db.startShift(cajeroName, openingBalance);
+      setActiveShift(shift);
+      showToast("¡Turno de caja iniciado con éxito!", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const handleCloseShift = (e) => {
+    e.preventDefault();
+    if (closingBalance.trim() === "") {
+      showToast("Por favor ingrese el efectivo físico contado en caja.", "error");
+      return;
+    }
+    try {
+      const closed = db.closeShift(closingBalance);
+      printShiftReceipt(closed);
+      setActiveShift(null);
+      setShowCloseShiftModal(false);
+      setClosingBalance("");
+      showToast("¡Turno finalizado y ticket de corte impreso!", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const printShiftReceipt = (closedShift) => {
+    const sales = db.getSales();
+    const shiftSales = sales.filter(s => s.shiftId === closedShift.id || 
+      (!s.shiftId && s.date >= closedShift.startTime && s.date <= closedShift.endTime));
+
+    const popupWin = window.open("", "_blank", "width=380,height=600");
+    if (!popupWin) {
+      showToast("Por favor permita las ventanas emergentes para imprimir.", "warning");
+      return;
+    }
+
+    const duration = () => {
+      const start = new Date(closedShift.startTime).getTime();
+      const end = new Date(closedShift.endTime).getTime();
+      const diff = end - start;
+      const hrs = Math.floor(diff / 3600000).toString().padStart(2, "0");
+      const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
+      const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+      return `${hrs}:${mins}:${secs}`;
+    };
+
+    const tableRows = shiftSales.map((s, idx) => {
+      const formattedDate = new Date(s.date).toLocaleString("es-MX", { 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      });
+      return `
+        <tr>
+          <td>#${s.id.slice(-6).toUpperCase()}</td>
+          <td>${formattedDate}</td>
+          <td>${s.customerName.slice(0, 8)}</td>
+          <td>${s.paymentMethod.slice(0, 4)}</td>
+          <td style="text-align: right;">$${s.total.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    popupWin.document.write(`
+      <html>
+        <head>
+          <title>Corte de Caja - Zabalegui</title>
+          <style>
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              font-size: 11pt; 
+              line-height: 1.3; 
+              margin: 10px; 
+              color: #000;
+            }
+            .text-center { text-align: center; }
+            .header { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .section { border-bottom: 1px dashed #000; padding: 10px 0; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+            th, td { padding: 4px 0; text-align: left; }
+            th { border-bottom: 1px solid #000; }
+            .totals { font-weight: bold; margin-top: 10px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 3px 0; }
+            .footer { margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 9pt; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="text-center header">
+            <h2 style="margin: 0; font-size: 16pt; font-weight: bold; letter-spacing: 2px;">ZABALEGUI</h2>
+            <div style="font-size: 9pt; margin-top: 3px;">CORTE DE CAJA (ARQUEO)</div>
+            <div style="font-size: 9pt;">Fecha: ${new Date(closedShift.endTime).toLocaleDateString("es-MX")}</div>
+          </div>
+
+          <div>
+            <strong>Cajero:</strong> ${closedShift.cashierName}<br/>
+            <strong>Inicio:</strong> ${new Date(closedShift.startTime).toLocaleTimeString("es-MX")}<br/>
+            <strong>Cierre:</strong> ${new Date(closedShift.endTime).toLocaleTimeString("es-MX")}<br/>
+            <strong>Duración:</strong> ${duration()}<br/>
+          </div>
+
+          <div class="section">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 5px;">TRANSACCIONES DEL TURNO</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Hora</th>
+                  <th>Cli</th>
+                  <th>Pago</th>
+                  <th style="text-align: right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows || '<tr><td colspan="5" style="text-align:center;">No hubo ventas</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section totals">
+            <div class="totals-row">
+              <span>Fondo Inicial:</span>
+              <span>$${closedShift.openingBalance.toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Ventas Efectivo:</span>
+              <span>$${closedShift.cashSales.toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Ventas Tarj/Trans:</span>
+              <span>$${closedShift.nonCashSales.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px;">
+              <span>Efectivo Esperado:</span>
+              <span>$${closedShift.expectedBalance.toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Efectivo Físico:</span>
+              <span>$${closedShift.closingBalance.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="color: ${closedShift.discrepancy >= 0 ? "#000" : "#d00"}">
+              <span>Diferencia:</span>
+              <span>$${closedShift.discrepancy.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px; font-size: 12pt;">
+              <span>TOTAL VENTAS:</span>
+              <span>$${closedShift.totalSales.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="text-center footer">
+            <div>Firma del Cajero</div>
+            <br/><br/>
+            <div>_______________________</div>
+            <div style="margin-top: 15px;">Zabalegui POS v2.0</div>
+          </div>
+        </body>
+      </html>
+    `);
+    popupWin.document.close();
+  };
+
   // Buscar productos manualmente por nombre o código de barras
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -347,13 +558,113 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     }
   };
 
+  if (!activeShift) {
+    return (
+      <div style={{ padding: "4rem 1.5rem", maxWidth: "480px", margin: "0 auto" }}>
+        <div className="glass-panel" style={{ padding: "2.5rem 2rem", borderRadius: "var(--radius-lg)", textAlign: "center" }}>
+          <div style={{
+            width: "60px",
+            height: "60px",
+            borderRadius: "50%",
+            background: "rgba(197, 146, 146, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 1.5rem auto",
+            color: "var(--primary-color)"
+          }}>
+            <ShoppingBag size={30} />
+          </div>
+          
+          <h2 style={{ margin: "0 0 0.5rem 0", color: "var(--text-dark)", fontSize: "1.6rem" }}>Apertura de Caja</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: "2rem", lineHeight: "1.4" }}>
+            Para comenzar a realizar ventas y registrar transacciones, inicia tu turno ingresando los siguientes datos:
+          </p>
+
+          <form onSubmit={handleStartShift} style={{ textAlign: "left" }}>
+            <div className="input-group" style={{ marginBottom: "1.25rem" }}>
+              <label className="input-label">Nombre del Cajero</label>
+              <input
+                type="text"
+                className="input-field"
+                value={cajeroName}
+                onChange={(e) => setCajeroName(e.target.value)}
+                placeholder="Ingresa tu nombre completo"
+                required
+              />
+            </div>
+
+            <div className="input-group" style={{ marginBottom: "2rem" }}>
+              <label className="input-label">Fondo de Caja Inicial ($ MXN)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="input-field"
+                value={openingBalance}
+                onChange={(e) => setOpeningBalance(e.target.value)}
+                placeholder="Ej. 1000.00 (Fondo en efectivo)"
+              />
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginTop: "4px" }}>
+                Dinero en efectivo con el que se inicia la caja.
+              </span>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "1rem" }}>
+              Iniciar Turno y Abrir Caja
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "2rem 1.5rem", maxWidth: "1200px", margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-        <h1 style={{ margin: 0 }}>Punto de Venta</h1>
-        <span style={{ fontSize: "0.95rem", color: "var(--text-muted)" }}>
-          Cajero activo: <strong>{currentUser.name}</strong>
-        </span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Punto de Venta</h1>
+          <p style={{ color: "var(--text-muted)", margin: "0.25rem 0 0 0", fontSize: "0.9rem" }}>
+            Registra ventas, aplica recompensas VIP y asocia puntos.
+          </p>
+        </div>
+        
+        {/* Banner de Turno Activo */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "1.25rem",
+          background: "rgba(197, 146, 146, 0.1)",
+          padding: "0.75rem 1.25rem",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid rgba(197, 146, 146, 0.2)",
+          fontSize: "0.95rem"
+        }}>
+          <div>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", display: "block" }}>CAJERO ACTIVO</span>
+            <strong>{activeShift.cashierName}</strong>
+          </div>
+          <div style={{ borderLeft: "1px solid rgba(49, 29, 32, 0.15)", paddingLeft: "1.25rem" }}>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", display: "block" }}>TIEMPO TRANSCURRIDO</span>
+            <strong style={{ fontFamily: "monospace", fontSize: "1.05rem", color: "var(--primary-color)" }}>{elapsedTime}</strong>
+          </div>
+          <button 
+            className="btn btn-danger btn-sm" 
+            onClick={() => {
+              const sales = db.getSales();
+              const shiftSales = sales.filter(s => s.shiftId === activeShift.id || 
+                (!s.shiftId && s.date >= activeShift.startTime));
+              let cash = 0;
+              shiftSales.forEach(s => {
+                if (s.paymentMethod === "Efectivo") cash += s.total;
+              });
+              setClosingBalance((activeShift.openingBalance + cash).toString());
+              setShowCloseShiftModal(true);
+            }}
+            style={{ padding: "0.5rem 0.9rem" }}
+          >
+            Finalizar Turno
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "1.5rem", alignItems: "start" }}>
@@ -853,6 +1164,97 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
           </div>
         </div>
       )}
+
+      {/* MODAL CIERRE DE TURNO / CORTE DE CAJA */}
+      {showCloseShiftModal && (() => {
+        const sales = db.getSales();
+        const shiftSales = sales.filter(s => s.shiftId === activeShift.id || 
+          (!s.shiftId && s.date >= activeShift.startTime));
+        
+        let cashSales = 0;
+        let cardSales = 0;
+        let totalSalesCount = shiftSales.length;
+
+        shiftSales.forEach(s => {
+          if (s.paymentMethod === "Efectivo") {
+            cashSales += s.total;
+          } else {
+            cardSales += s.total;
+          }
+        });
+
+        const expectedCash = activeShift.openingBalance + cashSales;
+        const totalVendido = cashSales + cardSales;
+
+        return (
+          <div className="modal-overlay" style={{ zIndex: 1000 }}>
+            <div className="modal-content" style={{ maxWidth: "420px" }}>
+              <button className="modal-close" onClick={() => setShowCloseShiftModal(false)}>
+                <X size={20} style={{ transform: "rotate(45deg)" }} />
+              </button>
+              
+              <h2 style={{ marginBottom: "0.5rem" }}>Cierre de Caja & Corte</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+                Verifica las transacciones de tu turno antes de realizar el cierre físico.
+              </p>
+
+              <div className="glass-panel" style={{ padding: "1rem", marginBottom: "1.5rem", background: "rgba(49, 29, 32, 0.02)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.95rem" }}>
+                  <span>Ventas en Turno:</span>
+                  <strong>{totalSalesCount} transacciones</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.95rem" }}>
+                  <span>Fondo Inicial:</span>
+                  <strong>${activeShift.openingBalance.toFixed(2)}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.95rem" }}>
+                  <span>Ventas en Efectivo (+):</span>
+                  <strong style={{ color: "green" }}>+${cashSales.toFixed(2)}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.95rem" }}>
+                  <span>Ventas Tarjeta/Trans:</span>
+                  <strong>+${cardSales.toFixed(2)}</strong>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  padding: "0.6rem 0", 
+                  fontSize: "1rem", 
+                  fontWeight: "700",
+                  borderTop: "1px dashed var(--border-color)",
+                  marginTop: "0.5rem"
+                }}>
+                  <span>Efectivo Esperado en Caja:</span>
+                  <span style={{ color: "var(--primary-color)" }}>${expectedCash.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleCloseShift}>
+                <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+                  <label className="input-label" style={{ fontWeight: "700" }}>Efectivo Físico Contado ($ MXN) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input-field"
+                    value={closingBalance}
+                    onChange={(e) => setClosingBalance(e.target.value)}
+                    placeholder="Ingresa la cantidad física contada"
+                    autoFocus
+                    required
+                  />
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginTop: "4px" }}>
+                    Cuenta todo el dinero de la caja (incluyendo el fondo inicial).
+                  </span>
+                </div>
+
+                <button type="submit" className="btn btn-danger" style={{ width: "100%", padding: "1rem" }}>
+                  Cerrar Caja e Imprimir Corte
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

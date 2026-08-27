@@ -500,6 +500,7 @@ export const db = {
   },
 
   createSale: (saleData) => {
+    const activeShift = db.getActiveShift();
     const sales = db.getSales();
     const newSale = {
       id: `sale-${Date.now()}`,
@@ -514,7 +515,8 @@ export const db = {
       total: saleData.total,
       paymentMethod: saleData.paymentMethod, // Efectivo, Tarjeta, Puntos
       pointsEarned: saleData.pointsEarned || 0,
-      pointsUsed: saleData.pointsUsed || 0
+      pointsUsed: saleData.pointsUsed || 0,
+      shiftId: activeShift ? activeShift.id : null
     };
 
     // 1. Descontar Stock de Productos
@@ -625,5 +627,105 @@ export const db = {
     // Actualizar puntos del usuario
     db.updateUserPoints(userId, -reward.pointsCost, `Canje: ${reward.name}`);
     return true;
+  },
+
+  // --- TURNOS (SHIFTS) ---
+  getShifts: () => {
+    try {
+      const data = localStorage.getItem("pos_shifts");
+      if (!data) {
+        localStorage.setItem("pos_shifts", JSON.stringify([]));
+        return [];
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.error("Error al parsear pos_shifts", e);
+      return [];
+    }
+  },
+
+  saveShifts: (shifts) => {
+    try {
+      localStorage.setItem("pos_shifts", JSON.stringify(shifts));
+    } catch (e) {
+      console.error("Error al guardar pos_shifts", e);
+    }
+  },
+
+  getActiveShift: () => {
+    const shifts = db.getShifts();
+    return shifts.find(s => s.status === "active") || null;
+  },
+
+  startShift: (cashierName, openingBalance) => {
+    const shifts = db.getShifts();
+    const active = shifts.find(s => s.status === "active");
+    if (active) {
+      throw new Error("Ya existe un turno activo en esta caja.");
+    }
+
+    const newShift = {
+      id: `shift-${Date.now()}`,
+      cashierName,
+      startTime: new Date().toISOString(),
+      endTime: null,
+      openingBalance: parseFloat(openingBalance) || 0,
+      closingBalance: null,
+      expectedBalance: null,
+      cashSales: 0,
+      nonCashSales: 0,
+      totalSales: 0,
+      discrepancy: 0,
+      status: "active"
+    };
+
+    shifts.push(newShift);
+    db.saveShifts(shifts);
+    return newShift;
+  },
+
+  closeShift: (closingBalance) => {
+    const shifts = db.getShifts();
+    const activeIndex = shifts.findIndex(s => s.status === "active");
+    if (activeIndex === -1) {
+      throw new Error("No hay ningún turno activo para cerrar.");
+    }
+
+    const activeShift = shifts[activeIndex];
+    const sales = db.getSales();
+    
+    // Obtener las ventas realizadas durante este turno (por shiftId o rango de tiempo si no tiene shiftId)
+    const shiftSales = sales.filter(s => s.shiftId === activeShift.id || 
+      (!s.shiftId && s.date >= activeShift.startTime));
+
+    let cashSales = 0;
+    let nonCashSales = 0;
+    let totalSales = 0;
+
+    shiftSales.forEach(sale => {
+      totalSales += sale.total;
+      if (sale.paymentMethod === "Efectivo") {
+        cashSales += sale.total;
+      } else {
+        nonCashSales += sale.total;
+      }
+    });
+
+    const expectedBalance = activeShift.openingBalance + cashSales;
+    const closedShift = {
+      ...activeShift,
+      endTime: new Date().toISOString(),
+      closingBalance: parseFloat(closingBalance) || 0,
+      expectedBalance,
+      cashSales,
+      nonCashSales,
+      totalSales,
+      discrepancy: (parseFloat(closingBalance) || 0) - expectedBalance,
+      status: "closed"
+    };
+
+    shifts[activeIndex] = closedShift;
+    db.saveShifts(shifts);
+    return closedShift;
   }
 };
