@@ -185,6 +185,8 @@ export default function App() {
         
         {currentView === "dashboard" && currentUser && currentUser.role === "gerente" && (
           <Dashboard 
+            currentUser={currentUser}
+            onUpdateCurrentUser={handleUpdateUser}
             products={products} 
             onRefreshProducts={refreshProducts} 
             showToast={showToast} 

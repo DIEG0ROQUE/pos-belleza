@@ -453,6 +453,23 @@ export const db = {
     return newUser;
   },
 
+  updateUserProfile: (userId, updatedData) => {
+    const users = db.getUsers();
+    const index = users.findIndex(u => u.id === userId);
+    if (index !== -1) {
+      if (updatedData.phone && users.some(u => u.phone === updatedData.phone && u.id !== userId)) {
+        throw new Error("El número de teléfono ya está registrado por otro usuario.");
+      }
+      users[index] = {
+        ...users[index],
+        ...updatedData
+      };
+      db.saveUsers(users);
+      return users[index];
+    }
+    throw new Error("Usuario no encontrado.");
+  },
+
   updateUserPoints: (userId, pointsDiff, description) => {
     const users = db.getUsers();
     const index = users.findIndex(u => u.id === userId);

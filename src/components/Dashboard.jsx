@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { db } from "../utils/db";
 
-export default function Dashboard({ products, onRefreshProducts, showToast }) {
+export default function Dashboard({ currentUser, onUpdateCurrentUser, products, onRefreshProducts, showToast }) {
   const sales = db.getSales();
   const users = db.getUsers();
   const clients = users.filter(u => u.role === "cliente");
@@ -19,6 +19,30 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
   const [txFilter, setTxFilter] = useState("todos"); // "todos", "hoy", "mes"
   const [txGrouping, setTxGrouping] = useState("list"); // "list", "day", "month"
   const [selectedReceipt, setSelectedReceipt] = useState(null);
+
+  // --- Estados de Gestión de Personal ---
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [editingStaffUser, setEditingStaffUser] = useState(null);
+  const [staffName, setStaffName] = useState("");
+  const [staffPhone, setStaffPhone] = useState("");
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffPassword, setStaffPassword] = useState("");
+  const [staffRole, setStaffRole] = useState("cajero");
+
+  // Perfil propio (Gerente)
+  const [selfName, setSelfName] = useState(currentUser ? currentUser.name : "");
+  const [selfPhone, setSelfPhone] = useState(currentUser ? currentUser.phone : "");
+  const [selfEmail, setSelfEmail] = useState(currentUser ? (currentUser.email || "") : "");
+  const [selfPassword, setSelfPassword] = useState(currentUser ? currentUser.password : "");
+
+  useEffect(() => {
+    if (currentUser) {
+      setSelfName(currentUser.name);
+      setSelfPhone(currentUser.phone);
+      setSelfEmail(currentUser.email || "");
+      setSelfPassword(currentUser.password);
+    }
+  }, [currentUser]);
 
   // --- 1. KPI Cálculos ---
   const totalSalesRevenue = sales.reduce((sum, s) => sum + s.total, 0);
@@ -402,6 +426,91 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
     popupWin.document.close();
   };
 
+  const handleSaveSelfProfile = (e) => {
+    e.preventDefault();
+    if (!selfName || !selfPhone || !selfPassword) {
+      showToast("Por favor complete nombre, teléfono y contraseña.", "error");
+      return;
+    }
+    try {
+      const updated = db.updateUserProfile(currentUser.id, {
+        name: selfName,
+        phone: selfPhone,
+        email: selfEmail,
+        password: selfPassword
+      });
+      if (onUpdateCurrentUser) onUpdateCurrentUser(updated);
+      showToast("Tu perfil ha sido actualizado correctamente.", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const handleOpenAddStaff = () => {
+    setEditingStaffUser(null);
+    setStaffName("");
+    setStaffPhone("");
+    setStaffEmail("");
+    setStaffPassword("");
+    setStaffRole("cajero");
+    setShowStaffModal(true);
+  };
+
+  const handleOpenEditStaff = (staff) => {
+    setEditingStaffUser(staff);
+    setStaffName(staff.name);
+    setStaffPhone(staff.phone);
+    setStaffEmail(staff.email || "");
+    setStaffPassword(staff.password);
+    setStaffRole(staff.role);
+    setShowStaffModal(true);
+  };
+
+  const handleSaveStaff = (e) => {
+    e.preventDefault();
+    if (!staffName || !staffPhone || !staffPassword) {
+      showToast("Por favor complete nombre, teléfono y contraseña.", "error");
+      return;
+    }
+    try {
+      if (editingStaffUser) {
+        db.updateUserProfile(editingStaffUser.id, {
+          name: staffName,
+          phone: staffPhone,
+          email: staffEmail,
+          password: staffPassword,
+          role: staffRole
+        });
+        showToast("Cuenta del empleado actualizada.", "success");
+      } else {
+        db.registerUser({
+          name: staffName,
+          phone: staffPhone,
+          email: staffEmail,
+          password: staffPassword,
+          role: staffRole
+        });
+        showToast("Nuevo empleado registrado correctamente.", "success");
+      }
+      setShowStaffModal(false);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const handleDeleteStaff = (id) => {
+    if (id === currentUser.id) {
+      showToast("No puedes eliminar tu propia cuenta gerencial.", "error");
+      return;
+    }
+    if (window.confirm("¿Está seguro de eliminar esta cuenta de empleado?")) {
+      const usersList = db.getUsers();
+      const filtered = usersList.filter(u => u.id !== id);
+      db.saveUsers(filtered);
+      showToast("Cuenta eliminada con éxito.", "success");
+    }
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -520,6 +629,23 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
           }}
         >
           <List size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Cortes de Caja
+        </button>
+        <button
+          onClick={() => setActiveTab("staff")}
+          className={`nav-button ${activeTab === "staff" ? "btn-primary" : "btn-secondary"}`}
+          style={{
+            padding: "0.5rem 1.25rem",
+            borderRadius: "20px",
+            border: activeTab === "staff" ? "none" : "1px solid var(--border-color)",
+            background: activeTab === "staff" ? "var(--primary-color)" : "white",
+            color: activeTab === "staff" ? "white" : "var(--text-dark)",
+            fontWeight: "600",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            transition: "var(--transition-fast)"
+          }}
+        >
+          <UserCheck size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Gestionar Personal
         </button>
       </div>
 
@@ -1123,6 +1249,219 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
           </div>
         );
       })()}
+
+      {/* --- CONTENIDO PESTAÑA GESTIONAR PERSONAL --- */}
+      {activeTab === "staff" && (() => {
+        const allUsers = db.getUsers();
+        const staff = allUsers.filter(u => u.role === "gerente" || u.role === "cajero");
+
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "2rem", alignItems: "start" }}>
+            
+            {/* Formulario de Perfil Propio */}
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <h3 style={{ fontSize: "1.1rem", margin: "0 0 1rem 0" }}>Mi Perfil Gerencial</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "1.25rem" }}>
+                Edita tus credenciales de acceso y datos generales como administrador del sistema.
+              </p>
+
+              <form onSubmit={handleSaveSelfProfile}>
+                <div className="input-group">
+                  <label className="input-label">Nombre Completo *</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={selfName} 
+                    onChange={(e) => setSelfName(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Teléfono / Usuario *</label>
+                  <input 
+                    type="tel" 
+                    className="input-field" 
+                    value={selfPhone} 
+                    onChange={(e) => setSelfPhone(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Correo Electrónico</label>
+                  <input 
+                    type="email" 
+                    className="input-field" 
+                    value={selfEmail} 
+                    onChange={(e) => setSelfEmail(e.target.value)} 
+                  />
+                </div>
+                <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+                  <label className="input-label">Contraseña de Acceso *</label>
+                  <input 
+                    type="password" 
+                    className="input-field" 
+                    value={selfPassword} 
+                    onChange={(e) => setSelfPassword(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
+                  Guardar Mi Perfil
+                </button>
+              </form>
+            </div>
+
+            {/* Listado y gestión del equipo de caja */}
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <h3 style={{ fontSize: "1.1rem", margin: 0 }}>Cajeros & Personal</h3>
+                <button className="btn btn-primary btn-sm" onClick={handleOpenAddStaff} style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                  <Plus size={14} /> Registrar Empleado
+                </button>
+              </div>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "1.5rem" }}>
+                Crea o modifica las cuentas de acceso para el personal encargado de la caja y ventas.
+              </p>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "rgba(49, 29, 32, 0.02)", borderBottom: "1px solid var(--border-color)" }}>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Nombre</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Teléfono</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Email</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Rol</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staff.map(member => (
+                      <tr key={member.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
+                        <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem" }}>
+                          <strong>{member.name}</strong> {member.id === currentUser.id && <span style={{ fontSize: "0.75rem", color: "var(--accent-gold)", fontWeight: "600" }}>(Tú)</span>}
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", fontFamily: "monospace" }}>{member.phone}</td>
+                        <td style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>{member.email || "-"}</td>
+                        <td style={{ padding: "0.75rem 1rem" }}>
+                          <span style={{
+                            fontSize: "0.75rem",
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            background: member.role === "gerente" ? "#fef3c7" : "#eef7f0",
+                            color: member.role === "gerente" ? "#d97706" : "#2b613a"
+                          }}>
+                            {member.role === "gerente" ? "Gerente" : "Cajero"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
+                          <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                            <button className="btn btn-secondary btn-sm" onClick={() => handleOpenEditStaff(member)} style={{ padding: "0.3rem 0.5rem" }} title="Editar Datos">
+                              <Edit size={12} />
+                            </button>
+                            <button 
+                              className="btn btn-danger btn-sm" 
+                              onClick={() => handleDeleteStaff(member.id)} 
+                              style={{ padding: "0.3rem 0.5rem" }} 
+                              disabled={member.id === currentUser.id}
+                              title="Eliminar Cuenta"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        );
+      })()}
+
+      {/* --- MODAL AGREGAR / EDITAR STAFF --- */}
+      {showStaffModal && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-content" style={{ maxWidth: "440px" }}>
+            <button className="modal-close" onClick={() => setShowStaffModal(false)}>
+              <X size={20} />
+            </button>
+
+            <h2>{editingStaffUser ? "Editar Empleado" : "Nuevo Registro de Personal"}</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+              Asigna credenciales de acceso para el personal de la tienda.
+            </p>
+
+            <form onSubmit={handleSaveStaff}>
+              <div className="input-group">
+                <label className="input-label">Nombre Completo *</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={staffName} 
+                  onChange={(e) => setStaffName(e.target.value)} 
+                  placeholder="Ej. Ana Gómez Ortega"
+                  required 
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="input-group">
+                  <label className="input-label">Teléfono / Usuario *</label>
+                  <input 
+                    type="tel" 
+                    className="input-field" 
+                    value={staffPhone} 
+                    onChange={(e) => setStaffPhone(e.target.value)} 
+                    placeholder="10 dígitos"
+                    required 
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Rol en Tienda *</label>
+                  <select 
+                    className="input-field" 
+                    value={staffRole} 
+                    onChange={(e) => setStaffRole(e.target.value)}
+                  >
+                    <option value="cajero">Cajero</option>
+                    <option value="gerente">Gerente</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Correo Electrónico</label>
+                <input 
+                  type="email" 
+                  className="input-field" 
+                  value={staffEmail} 
+                  onChange={(e) => setStaffEmail(e.target.value)} 
+                  placeholder="Ej. empleado@zabalegui.com"
+                />
+              </div>
+
+              <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+                <label className="input-label">Contraseña de Acceso *</label>
+                <input 
+                  type="password" 
+                  className="input-field" 
+                  value={staffPassword} 
+                  onChange={(e) => setStaffPassword(e.target.value)} 
+                  placeholder="Mínimo 4 caracteres"
+                  required 
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "1rem" }}>
+                <Save size={18} style={{ marginRight: "0.5rem", verticalAlign: "middle" }} /> Guardar Cuenta de Empleado
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL DETALLES DE VENTA --- */}
       {selectedReceipt && (
