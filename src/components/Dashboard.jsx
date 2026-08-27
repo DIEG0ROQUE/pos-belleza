@@ -249,6 +249,159 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
     }
   };
 
+  const handlePrintShift = (closedShift) => {
+    const sales = db.getSales();
+    const shiftSales = sales.filter(s => s.shiftId === closedShift.id || 
+      (!s.shiftId && s.date >= closedShift.startTime && s.date <= closedShift.endTime));
+
+    const popupWin = window.open("", "_blank", "width=380,height=600");
+    if (!popupWin) {
+      if (showToast) showToast("Por favor permita las ventanas emergentes para imprimir.", "warning");
+      return;
+    }
+
+    let spaceRentalTotal = 0;
+    shiftSales.forEach(s => {
+      s.items.forEach(item => {
+        if (item.isSpaceRental) {
+          spaceRentalTotal += item.price * item.quantity;
+        }
+      });
+    });
+    const ownSales = (closedShift.totalSales || 0) - spaceRentalTotal;
+
+    const duration = () => {
+      const start = new Date(closedShift.startTime).getTime();
+      const end = new Date(closedShift.endTime).getTime();
+      const diff = end - start;
+      const hrs = Math.floor(diff / 3600000).toString().padStart(2, "0");
+      const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
+      const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+      return `${hrs}:${mins}:${secs}`;
+    };
+
+    const tableRows = shiftSales.map((s, idx) => {
+      const formattedDate = new Date(s.date).toLocaleString("es-MX", { 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      });
+      return `
+        <tr>
+          <td>#${s.id.slice(-6).toUpperCase()}</td>
+          <td>${formattedDate}</td>
+          <td>${s.customerName.slice(0, 8)}</td>
+          <td>${s.paymentMethod.slice(0, 4)}</td>
+          <td style="text-align: right;">$${s.total.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    popupWin.document.write(`
+      <html>
+        <head>
+          <title>Corte de Caja - Zabalegui</title>
+          <style>
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              font-size: 11pt; 
+              line-height: 1.3; 
+              margin: 10px; 
+              color: #000;
+            }
+            .text-center { text-align: center; }
+            .header { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+            .section { border-bottom: 1px dashed #000; padding: 10px 0; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+            th, td { padding: 4px 0; text-align: left; }
+            th { border-bottom: 1px solid #000; }
+            .totals { font-weight: bold; margin-top: 10px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 3px 0; }
+            .footer { margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 9pt; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="text-center header">
+            <h2 style="margin: 0; font-size: 16pt; font-weight: bold; letter-spacing: 2px;">ZABALEGUI</h2>
+            <div style="font-size: 9pt; margin-top: 3px;">CORTE DE CAJA (ARQUEO)</div>
+            <div style="font-size: 9pt;">Fecha: ${new Date(closedShift.endTime || closedShift.startTime).toLocaleDateString("es-MX")}</div>
+          </div>
+
+          <div>
+            <strong>Cajero:</strong> ${closedShift.cashierName}<br/>
+            <strong>Inicio:</strong> ${new Date(closedShift.startTime).toLocaleTimeString("es-MX")}<br/>
+            <strong>Cierre:</strong> ${closedShift.endTime ? new Date(closedShift.endTime).toLocaleTimeString("es-MX") : "Turno Activo"}<br/>
+            <strong>Duración:</strong> ${closedShift.endTime ? duration() : "En curso"}<br/>
+          </div>
+
+          <div class="section">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 5px;">TRANSACCIONES DEL TURNO</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Hora</th>
+                  <th>Cli</th>
+                  <th>Pago</th>
+                  <th style="text-align: right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows || '<tr><td colspan="5" style="text-align:center;">No hubo ventas</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section totals">
+            <div class="totals-row">
+              <span>Fondo Inicial:</span>
+              <span>$${closedShift.openingBalance.toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Ventas Efectivo:</span>
+              <span>$${(closedShift.cashSales || 0).toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Ventas Tarj/Trans:</span>
+              <span>$${(closedShift.nonCashSales || 0).toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px dashed #555; padding-top: 3px; font-style: italic;">
+              <span>- Propias Zabalegui:</span>
+              <span>$${ownSales.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="font-style: italic; color: #555;">
+              <span>- Renta Espacio:</span>
+              <span>$${spaceRentalTotal.toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px;">
+              <span>Efectivo Esperado:</span>
+              <span>$${(closedShift.expectedBalance || 0).toFixed(2)}</span>
+            </div>
+            <div class="totals-row">
+              <span>Efectivo Físico:</span>
+              <span>$${(closedShift.closingBalance || 0).toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="color: ${closedShift.discrepancy >= 0 ? "#000" : "#d00"}">
+              <span>Diferencia:</span>
+              <span>$${(closedShift.discrepancy || 0).toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px; font-size: 12pt;">
+              <span>TOTAL VENTAS:</span>
+              <span>$${(closedShift.totalSales || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="text-center footer">
+            <div>Firma del Cajero</div>
+            <br/><br/>
+            <div>_______________________</div>
+            <div style="margin-top: 15px;">Zabalegui POS v2.0</div>
+          </div>
+        </body>
+      </html>
+    `);
+    popupWin.document.close();
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -349,7 +502,24 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
             transition: "var(--transition-fast)"
           }}
         >
-          <FileText size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Historial de Transacciones
+          <FileText size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Historial de Ventas
+        </button>
+        <button
+          onClick={() => setActiveTab("shifts")}
+          className={`nav-button ${activeTab === "shifts" ? "btn-primary" : "btn-secondary"}`}
+          style={{
+            padding: "0.5rem 1.25rem",
+            borderRadius: "20px",
+            border: activeTab === "shifts" ? "none" : "1px solid var(--border-color)",
+            background: activeTab === "shifts" ? "var(--primary-color)" : "white",
+            color: activeTab === "shifts" ? "white" : "var(--text-dark)",
+            fontWeight: "600",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            transition: "var(--transition-fast)"
+          }}
+        >
+          <List size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Cortes de Caja
         </button>
       </div>
 
@@ -837,6 +1007,122 @@ export default function Dashboard({ products, onRefreshProducts, showToast }) {
           )}
         </>
       )}
+
+      {/* --- CONTENIDO PESTAÑA CORTES DE CAJA --- */}
+      {activeTab === "shifts" && (() => {
+        const shifts = db.getShifts().sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <h2 style={{ fontSize: "1.2rem", margin: "0 0 1rem 0" }}>Historial de Cortes de Caja (Arqueos)</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+                Aquí puedes monitorear las aperturas, cierres y arqueos físicos realizados por tus cajeros.
+              </p>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "rgba(49, 29, 32, 0.02)", borderBottom: "1px solid var(--border-color)" }}>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Fecha</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Cajero</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Apertura</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Cierre</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Fondo Inicial</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Efectivo Esperado</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Físico Contado</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Diferencia</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Total Ventas</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "center" }}>Estado</th>
+                      <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shifts.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>
+                          No se han registrado turnos ni cortes de caja.
+                        </td>
+                      </tr>
+                    ) : (
+                      shifts.map(shift => {
+                        const isClosed = shift.status === "closed";
+                        const isDeficit = isClosed && shift.discrepancy < 0;
+
+                        return (
+                          <tr key={shift.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", fontWeight: "600" }}>
+                              {new Date(shift.startTime).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem" }}>{shift.cashierName}</td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                              {new Date(shift.startTime).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                              {shift.endTime 
+                                ? new Date(shift.endTime).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) 
+                                : "Turno Activo"}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", textAlign: "right" }}>
+                              ${shift.openingBalance.toFixed(2)}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", textAlign: "right" }}>
+                              {isClosed ? `$${shift.expectedBalance.toFixed(2)}` : "Calculando..."}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", textAlign: "right", fontWeight: isClosed ? "600" : "400" }}>
+                              {isClosed ? `$${shift.closingBalance.toFixed(2)}` : "-"}
+                            </td>
+                            <td style={{ 
+                              padding: "0.75rem 1rem", 
+                              fontSize: "0.9rem", 
+                              textAlign: "right", 
+                              fontWeight: "700",
+                              color: isClosed 
+                                ? (shift.discrepancy === 0 ? "green" : (isDeficit ? "#c93b54" : "blue"))
+                                : "inherit"
+                            }}>
+                              {isClosed 
+                                ? (shift.discrepancy === 0 
+                                  ? "$0.00" 
+                                  : (shift.discrepancy > 0 ? `+$${shift.discrepancy.toFixed(2)}` : `-$${Math.abs(shift.discrepancy).toFixed(2)}`))
+                                : "-"}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontSize: "0.95rem", textAlign: "right", fontWeight: "700", color: "var(--primary-color)" }}>
+                              {isClosed ? `$${shift.totalSales.toFixed(2)}` : "-"}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", textAlign: "center" }}>
+                              <span style={{
+                                fontSize: "0.75rem",
+                                padding: "0.2rem 0.5rem",
+                                borderRadius: "8px",
+                                background: isClosed ? "#eef7f0" : "#fef3c7",
+                                color: isClosed ? "#2b613a" : "#d97706",
+                                fontWeight: "600"
+                              }}>
+                                {isClosed ? "Cerrado" : "Abierto"}
+                              </span>
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
+                              <button 
+                                className="btn btn-secondary btn-sm" 
+                                onClick={() => handlePrintShift(shift)}
+                                style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.3rem 0.6rem" }}
+                                title="Imprimir ticket de corte"
+                              >
+                                <Printer size={12} /> Imprimir
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* --- MODAL DETALLES DE VENTA --- */}
       {selectedReceipt && (
