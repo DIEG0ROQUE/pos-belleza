@@ -271,10 +271,10 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     const itemsRows = receipt.items.map(item => {
       return `
         <tr>
-          <td style="padding: 2px 0; font-size: 8.5pt; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <td style="padding: 2px 0; font-size: 7.5pt; width: 68%; line-height: 1.1; word-break: break-all;">
             ${item.quantity} x ${item.name}
           </td>
-          <td style="padding: 2px 0; text-align: right; font-size: 8.5pt;">
+          <td style="padding: 2px 0; text-align: right; font-size: 7.5pt; width: 32%; white-space: nowrap; vertical-align: bottom;">
             $${(item.price * item.quantity).toFixed(2)}
           </td>
         </tr>
@@ -293,14 +293,14 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             html, body {
               margin: 0;
               padding: 0;
-              width: 58mm;
+              width: 47mm; /* Ancho real imprimible de impresoras 58mm */
               background: #fff;
             }
             body { 
               font-family: 'Courier New', Courier, monospace; 
-              font-size: 8pt; 
+              font-size: 7.5pt; 
               line-height: 1.15; 
-              padding: 5px 8px;
+              padding: 4px 6px;
               color: #000;
               box-sizing: border-box;
             }
