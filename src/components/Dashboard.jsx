@@ -20,6 +20,12 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const [txGrouping, setTxGrouping] = useState("list"); // "list", "day", "month"
   const [selectedReceipt, setSelectedReceipt] = useState(null);
 
+  // --- Estados de Gestión de Clientes VIP ---
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [selectedLoyaltyClient, setSelectedLoyaltyClient] = useState(null);
+  const [manualPointsAdjustment, setManualPointsAdjustment] = useState("");
+  const [showPointsModal, setShowPointsModal] = useState(false);
+
   // --- Estados de Gestión de Personal ---
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [editingStaffUser, setEditingStaffUser] = useState(null);
@@ -542,6 +548,33 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
     }
   };
 
+  const handleAdjustPoints = (e) => {
+    e.preventDefault();
+    if (!selectedLoyaltyClient) return;
+    const pts = parseInt(manualPointsAdjustment);
+    if (isNaN(pts)) {
+      showToast("Por favor ingrese una cantidad válida de puntos.", "error");
+      return;
+    }
+    try {
+      const allUsers = db.getUsers();
+      const index = allUsers.findIndex(u => u.id === selectedLoyaltyClient.id);
+      if (index !== -1) {
+        const originalPoints = allUsers[index].points || 0;
+        const newPoints = Math.max(0, originalPoints + pts);
+        allUsers[index].points = newPoints;
+        db.saveUsers(allUsers);
+        
+        setSelectedLoyaltyClient({ ...allUsers[index] });
+        showToast(`Puntos ajustados con éxito. Saldo anterior: ${originalPoints} pts. Nuevo saldo: ${newPoints} pts.`, "success");
+        setManualPointsAdjustment("");
+        setShowPointsModal(false);
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -660,6 +693,23 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
           }}
         >
           <List size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Cortes de Caja
+        </button>
+        <button
+          onClick={() => setActiveTab("clients")}
+          className={`nav-button ${activeTab === "clients" ? "btn-primary" : "btn-secondary"}`}
+          style={{
+            padding: "0.5rem 1.25rem",
+            borderRadius: "20px",
+            border: activeTab === "clients" ? "none" : "1px solid var(--border-color)",
+            background: activeTab === "clients" ? "var(--primary-color)" : "white",
+            color: activeTab === "clients" ? "white" : "var(--text-dark)",
+            fontWeight: "600",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            transition: "var(--transition-fast)"
+          }}
+        >
+          <Award size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Clientes VIP
         </button>
         <button
           onClick={() => setActiveTab("staff")}
@@ -1412,6 +1462,189 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
         );
       })()}
 
+      {/* --- CONTENIDO PESTAÑA CLIENTES VIP --- */}
+      {activeTab === "clients" && (() => {
+        const allUsers = db.getUsers();
+        const clientsList = allUsers.filter(u => u.role === "cliente");
+        
+        const filteredClients = clientsList.filter(c => 
+          c.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+          c.phone.includes(clientSearchQuery) ||
+          (c.email && c.email.toLowerCase().includes(clientSearchQuery.toLowerCase()))
+        );
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            
+            {/* Buscador de Clientes */}
+            <div className="glass-panel" style={{ padding: "1.25rem" }}>
+              <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                <div style={{ position: "relative", flex: 1 }}>
+                  <Search size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Buscar clientes por nombre, celular o correo..."
+                    value={clientSearchQuery}
+                    onChange={(e) => setClientSearchQuery(e.target.value)}
+                    style={{ paddingLeft: "38px", width: "100%", boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: selectedLoyaltyClient ? "1.5fr 1fr" : "1fr", gap: "1.5rem", alignItems: "start" }}>
+              
+              {/* Tabla de Clientes */}
+              <div className="glass-panel" style={{ padding: "1.5rem" }}>
+                <h3 style={{ fontSize: "1.1rem", margin: "0 0 1rem 0" }}>Directorio de Clientes VIP</h3>
+                
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(49, 29, 32, 0.02)", borderBottom: "1px solid var(--border-color)" }}>
+                        <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Nombre</th>
+                        <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Teléfono</th>
+                        <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Email</th>
+                        <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem" }}>Puntos Acumulados</th>
+                        <th style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", textAlign: "right" }}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClients.map(c => (
+                        <tr key={c.id} style={{ 
+                          borderBottom: "1px solid #f0ebe9",
+                          background: selectedLoyaltyClient && selectedLoyaltyClient.id === c.id ? "rgba(197, 155, 142, 0.08)" : "none"
+                        }}>
+                          <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem" }}>
+                            <strong>{c.name}</strong>
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", fontSize: "0.9rem", fontFamily: "monospace" }}>{c.phone}</td>
+                          <td style={{ padding: "0.75rem 1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>{c.email || "-"}</td>
+                          <td style={{ padding: "0.75rem 1rem", fontSize: "0.95rem", fontWeight: "700", color: "var(--accent-gold-bright)" }}>
+                            {c.points || 0} pts
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
+                            <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                              <button 
+                                className="btn btn-secondary btn-sm" 
+                                onClick={() => setSelectedLoyaltyClient(c)}
+                                style={{ padding: "0.3rem 0.6rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+                                title="Ver Historial"
+                              >
+                                <Eye size={12} /> Detalles
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredClients.length === 0 && (
+                        <tr>
+                          <td colSpan="5" style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
+                            No se encontraron clientes con ese criterio.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Detalle del Cliente Seleccionado */}
+              {selectedLoyaltyClient && (() => {
+                const clientSales = db.getSales().filter(s => s.customerId === selectedLoyaltyClient.id);
+                
+                return (
+                  <div className="glass-panel" style={{ padding: "1.5rem", border: "1px solid var(--accent-gold)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: "1.2rem" }}>{selectedLoyaltyClient.name}</h3>
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>ID: {selectedLoyaltyClient.id}</span>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedLoyaltyClient(null)}
+                        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Ficha Resumen */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                      <div style={{ background: "white", padding: "0.75rem", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>PUNTOS VIP</span>
+                        <strong style={{ fontSize: "1.25rem", color: "var(--accent-gold-bright)" }}>{selectedLoyaltyClient.points || 0} pts</strong>
+                      </div>
+                      <div style={{ background: "white", padding: "0.75rem", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>COMPRAS REGISTRADAS</span>
+                        <strong style={{ fontSize: "1.25rem", color: "var(--primary-color)" }}>{clientSales.length}</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        onClick={() => {
+                          setManualPointsAdjustment("");
+                          setShowPointsModal(true);
+                        }}
+                        style={{ width: "100%", padding: "0.5rem" }}
+                      >
+                        Ajustar Puntos Manualmente
+                      </button>
+                    </div>
+
+                    {/* Historial de Compras */}
+                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.75rem", borderBottom: "1px dashed var(--border-color)", paddingBottom: "0.25rem" }}>
+                      Historial de Compras
+                    </h4>
+                    
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", maxHeight: "300px", overflowY: "auto", paddingRight: "4px" }}>
+                      {clientSales.map(sale => (
+                        <div key={sale.id} style={{ 
+                          padding: "0.75rem", 
+                          background: "white", 
+                          borderRadius: "8px", 
+                          border: "1px solid var(--border-color)", 
+                          fontSize: "0.85rem",
+                          boxShadow: "var(--shadow-sm)"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <span style={{ fontFamily: "monospace", fontWeight: "bold" }}>#{sale.id.slice(-8).toUpperCase()}</span>
+                            <span style={{ color: "var(--text-muted)" }}>{new Date(sale.date).toLocaleDateString("es-MX")}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-dark)", fontWeight: "600" }}>
+                            <span>Total de Compra:</span>
+                            <span style={{ color: "var(--primary-color)" }}>${sale.total.toFixed(2)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "#4a7551", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                            <span>Puntos Acumulados:</span>
+                            <strong>+{sale.pointsEarned || 0} pts</strong>
+                          </div>
+                          {sale.pointsUsed > 0 && (
+                            <div style={{ display: "flex", justifyContent: "space-between", color: "#a82e3b", fontSize: "0.75rem" }}>
+                              <span>Puntos Redimidos:</span>
+                              <strong>-{sale.pointsUsed} pts</strong>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {clientSales.length === 0 && (
+                        <div style={{ textAlign: "center", padding: "1.5rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                          Este cliente no tiene compras asociadas todavía.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+            </div>
+
+          </div>
+        );
+      })()}
+
       {/* --- MODAL AGREGAR / EDITAR STAFF --- */}
       {showStaffModal && (
         <div className="modal-overlay" style={{ zIndex: 1000 }}>
@@ -1624,6 +1857,47 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL AJUSTAR PUNTOS --- */}
+      {showPointsModal && selectedLoyaltyClient && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" style={{ maxWidth: "380px" }}>
+            <button className="modal-close" onClick={() => setShowPointsModal(false)}>
+              <X size={20} />
+            </button>
+
+            <h2>Ajustar Puntos VIP</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+              Modifica manualmente el saldo de puntos de <strong>{selectedLoyaltyClient.name}</strong>.
+            </p>
+
+            <form onSubmit={handleAdjustPoints}>
+              <div style={{ background: "rgba(197, 155, 142, 0.08)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1.25rem" }}>
+                <span>Saldo Actual: <strong>{selectedLoyaltyClient.points || 0} pts</strong></span>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+                <label className="input-label">Puntos a Sumar o Restar *</label>
+                <input 
+                  type="number" 
+                  className="input-field" 
+                  value={manualPointsAdjustment} 
+                  onChange={(e) => setManualPointsAdjustment(e.target.value)} 
+                  placeholder="Ej. 100 para sumar, -50 para restar"
+                  required 
+                />
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginTop: "4px" }}>
+                  Ingresa un número positivo para regalar puntos, o uno negativo para descontarle.
+                </span>
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "1rem" }}>
+                Aplicar Ajuste de Puntos
+              </button>
+            </form>
           </div>
         </div>
       )}

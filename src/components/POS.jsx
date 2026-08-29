@@ -36,6 +36,10 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   // Formulario Cerrar Turno
   const [closingBalance, setClosingBalance] = useState("");
 
+  // Reclamo de puntos posteriores
+  const [claimPhone, setClaimPhone] = useState("");
+  const [claimFolio, setClaimFolio] = useState("");
+
   // Cargar turno activo al iniciar
   useEffect(() => {
     setActiveShift(db.getActiveShift());
@@ -612,6 +616,70 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     }
   };
 
+  const handleClaimPoints = (e) => {
+    e.preventDefault();
+    if (!claimPhone || !claimFolio) {
+      showToast("Por favor ingresa el teléfono del cliente y el folio del ticket.", "error");
+      return;
+    }
+
+    const allUsers = db.getUsers();
+    const allSales = db.getSales();
+
+    // 1. Encontrar cliente por teléfono
+    const client = allUsers.find(u => u.phone === claimPhone && u.role === "cliente");
+    if (!client) {
+      showToast("Cliente VIP no encontrado con ese número de teléfono.", "error");
+      return;
+    }
+
+    // 2. Encontrar venta por folio (completo o últimos 8 caracteres)
+    const targetFolio = claimFolio.trim().toUpperCase();
+    const sale = allSales.find(s => 
+      s.id.toUpperCase() === targetFolio || 
+      s.id.slice(-8).toUpperCase() === targetFolio
+    );
+
+    if (!sale) {
+      showToast("Ticket/Folio de venta no encontrado.", "error");
+      return;
+    }
+
+    // 3. Validar si ya tiene cliente asociado
+    if (sale.customerId && sale.customerId !== null) {
+      showToast("Este ticket ya tiene puntos acumulados en otra cuenta.", "error");
+      return;
+    }
+
+    // 4. Calcular puntos acumulados (10% del total de la compra)
+    const pointsToEarn = Math.round(sale.total * 0.1);
+    if (pointsToEarn <= 0) {
+      showToast("Esta compra tiene un total de $0.00, no acumula puntos.", "warning");
+      return;
+    }
+
+    // 5. Actualizar la venta
+    sale.customerId = client.id;
+    sale.customerName = client.name;
+    sale.pointsEarned = pointsToEarn;
+
+    // 6. Actualizar los puntos del cliente
+    client.points = (client.points || 0) + pointsToEarn;
+
+    // 7. Guardar en base de datos
+    db.saveSales(allSales);
+    db.saveUsers(allUsers);
+
+    // Si el cliente actual que está en el POS es el mismo, refrescar el estado del POS
+    if (associatedClient && associatedClient.id === client.id) {
+      setAssociatedClient({ ...client });
+    }
+
+    showToast(`¡Puntos agregados con éxito! Se sumaron +${pointsToEarn} pts a ${client.name}.`, "success");
+    setClaimPhone("");
+    setClaimFolio("");
+  };
+
   // Carrito helpers
   const addToCart = (product) => {
     if (product.stock <= 0) {
@@ -674,12 +742,17 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   const handleFinalizeSale = () => {
     if (cart.length === 0) return;
 
+    let finalCashReceived = total;
+    let finalChange = 0;
+
     if (paymentMethod === "Efectivo") {
-      const cash = parseFloat(cashReceived);
-      if (isNaN(cash) || cash < total) {
+      const cashVal = cashReceived.trim() === "" ? total : parseFloat(cashReceived);
+      if (isNaN(cashVal) || cashVal < total) {
         showToast("Monto de efectivo insuficiente o inválido.", "error");
         return;
       }
+      finalCashReceived = cashVal;
+      finalChange = cashVal - total;
     }
 
     try {
@@ -705,8 +778,8 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
       // Guardar ticket para visualización
       setLastSaleReceipt({
         ...sale,
-        change: paymentMethod === "Efectivo" ? parseFloat(cashReceived) - total : 0,
-        cashReceived: paymentMethod === "Efectivo" ? parseFloat(cashReceived) : total
+        change: finalChange,
+        cashReceived: finalCashReceived
       });
 
       // Resetear estados
@@ -1083,6 +1156,47 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
               Proceder al Pago
             </button>
           </div>
+
+          {/* Módulo de Reclamar Puntos Posteriores */}
+          <div className="glass-panel" style={{ padding: "1.5rem" }}>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "1.1rem", margin: "0 0 0.5rem 0" }}>
+              <Award size={18} color="var(--primary-color)" /> Reclamar Puntos Posteriores
+            </h3>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+              Asigna los puntos de una compra pasada a un cliente VIP que recién se registró o no dio su cuenta.
+            </p>
+
+            <form onSubmit={handleClaimPoints} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                <div>
+                  <label className="input-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Teléfono Cliente</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="10 dígitos"
+                    value={claimPhone}
+                    onChange={(e) => setClaimPhone(e.target.value.replace(/\D/g, ""))}
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="input-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Folio del Ticket</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Últimos 8 caracteres"
+                    value={claimFolio}
+                    onChange={(e) => setClaimFolio(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-secondary btn-sm" style={{ width: "100%", padding: "0.6rem" }}>
+                Asignar Puntos de Compra
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -1175,10 +1289,15 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                 <input
                   type="number"
                   className="input-field"
-                  placeholder="Monto entregado por cliente"
+                  placeholder="Dejar vacío para importe exacto"
                   value={cashReceived}
                   onChange={(e) => setCashReceived(e.target.value)}
-                  required
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleFinalizeSale();
+                    }
+                  }}
+                  autoFocus
                 />
                 {cashReceived && parseFloat(cashReceived) >= total && (
                   <div style={{
