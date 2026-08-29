@@ -181,15 +181,22 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
           <title>Reimpresión - Zabalegui</title>
           <style>
             @page {
+              size: 58mm auto;
               margin: 0;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 58mm;
+              background: #fff;
             }
             body { 
               font-family: 'Courier New', Courier, monospace; 
-              font-size: 8.5pt; 
+              font-size: 8pt; 
               line-height: 1.15; 
-              margin: 5px 8px; 
+              padding: 5px 8px;
               color: #000;
-              width: 260px;
+              box-sizing: border-box;
             }
             .text-center { text-align: center; }
             .header { margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
