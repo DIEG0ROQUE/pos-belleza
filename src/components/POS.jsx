@@ -253,6 +253,130 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     popupWin.document.close();
   };
 
+  const printSaleReceipt = (receipt) => {
+    const popupWin = window.open("", "_blank", "width=320,height=500");
+    if (!popupWin) {
+      showToast("Por favor permita las ventanas emergentes para imprimir.", "warning");
+      return;
+    }
+
+    const formattedDate = new Date(receipt.date).toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const itemsRows = receipt.items.map(item => {
+      return `
+        <tr>
+          <td style="padding: 2px 0; font-size: 8.5pt; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${item.quantity} x ${item.name}
+          </td>
+          <td style="padding: 2px 0; text-align: right; font-size: 8.5pt;">
+            $${(item.price * item.quantity).toFixed(2)}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    popupWin.document.write(`
+      <html>
+        <head>
+          <title>Ticket - Zabalegui</title>
+          <style>
+            @page {
+              margin: 0;
+            }
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              font-size: 8.5pt; 
+              line-height: 1.15; 
+              margin: 5px 8px; 
+              color: #000;
+              width: 260px;
+            }
+            .text-center { text-align: center; }
+            .header { margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .section { border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 4px; }
+            table { width: 100%; border-collapse: collapse; margin: 3px 0; }
+            td { vertical-align: top; }
+            .totals { font-weight: bold; margin-top: 5px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 2px 0; }
+            .footer { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; font-size: 7.5pt; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="text-center header">
+            <h3 style="margin: 0; font-size: 11pt; font-weight: bold; letter-spacing: 1px;">ZABALEGUI</h3>
+            <div style="font-size: 7.5pt; margin-top: 2px;">Armenta y López 1025</div>
+            <div style="font-size: 7.5pt;">Tel: 9541184642</div>
+            <div style="font-size: 7.5pt;">11:00 AM - 6:30 PM</div>
+          </div>
+
+          <div style="font-size: 7.5pt; margin-bottom: 4px;">
+            <strong>Folio:</strong> ${receipt.id.slice(-8).toUpperCase()}<br/>
+            <strong>Fecha:</strong> ${formattedDate}<br/>
+            <strong>Cajero:</strong> ${receipt.cashierName}<br/>
+            <strong>Cliente:</strong> ${receipt.customerName}<br/>
+          </div>
+
+          <div class="section">
+            <table style="width: 100%;">
+              <tbody>
+                ${itemsRows}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section totals">
+            <div class="totals-row">
+              <span>Subtotal:</span>
+              <span>$${receipt.subtotal.toFixed(2)}</span>
+            </div>
+            ${receipt.discount > 0 ? `
+            <div class="totals-row" style="color: #000;">
+              <span>Desc. Puntos:</span>
+              <span>-$${receipt.discount.toFixed(2)}</span>
+            </div>
+            ` : ""}
+            <div class="totals-row" style="font-size: 9.5pt; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px;">
+              <span>TOTAL:</span>
+              <span>$${receipt.total.toFixed(2)} MXN</span>
+            </div>
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt; margin-top: 3px;">
+              <span>Método Pago:</span>
+              <span>${receipt.paymentMethod}</span>
+            </div>
+            ${receipt.paymentMethod === "Efectivo" ? `
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt;">
+              <span>Efectivo Rec.:</span>
+              <span>$${(receipt.cashReceived || receipt.total).toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt;">
+              <span>Cambio:</span>
+              <span>$${(receipt.change || 0).toFixed(2)}</span>
+            </div>
+            ` : ""}
+          </div>
+
+          ${receipt.customerId ? `
+          <div class="text-center" style="font-size: 7.5pt; background: #eee; padding: 3px; border-radius: 3px; margin-top: 4px;">
+            Puntos Ganados: <strong>+${receipt.pointsEarned}</strong>
+          </div>
+          ` : ""}
+
+          <div class="text-center footer">
+            <strong>¡Gracias por tu compra!</strong><br/>
+            <span>zabalegui.pos</span>
+          </div>
+        </body>
+      </html>
+    `);
+    popupWin.document.close();
+  };
+
   // Buscar productos manualmente por nombre o código de barras
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -1174,7 +1298,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             
             <button 
               className="btn btn-primary btn-sm" 
-              onClick={() => window.print()}
+              onClick={() => printSaleReceipt(lastSaleReceipt)}
               style={{ width: "100%", marginTop: "1.5rem", fontFamily: "'Outfit', sans-serif" }}
             >
               Imprimir Ticket

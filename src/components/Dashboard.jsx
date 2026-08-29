@@ -147,117 +147,128 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
     salesByMonth[month].push(s);
   });
 
-  // Helper para imprimir recibo
   const handlePrintReceipt = (receipt) => {
-    const printWindow = window.open("", "_blank", "width=380,height=600");
-    const ticketHtml = `
+    const printWindow = window.open("", "_blank", "width=320,height=500");
+    if (!printWindow) {
+      if (showToast) showToast("Por favor permita las ventanas emergentes para imprimir.", "warning");
+      return;
+    }
+
+    const formattedDate = new Date(receipt.date).toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const itemsRows = receipt.items.map(item => {
+      return `
+        <tr>
+          <td style="padding: 2px 0; font-size: 8.5pt; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${item.quantity} x ${item.name}
+          </td>
+          <td style="padding: 2px 0; text-align: right; font-size: 8.5pt;">
+            $${(item.price * item.quantity).toFixed(2)}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    printWindow.document.write(`
       <html>
         <head>
-          <title>Reimpresión de Ticket</title>
+          <title>Reimpresión - Zabalegui</title>
           <style>
-            body {
-              font-family: monospace;
-              padding: 20px;
-              width: 300px;
-              margin: 0 auto;
-              color: #333;
+            @page {
+              margin: 0;
             }
-            .center { text-align: center; }
-            .dashed { border-bottom: 1px dashed #ccc; margin: 10px 0; }
-            .flex-between { display: flex; justify-content: space-between; }
-            table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
-            th { text-align: left; border-bottom: 1px dashed #333; padding-bottom: 5px; }
-            td { padding: 4px 0; }
-            .points-box { background: #eee; padding: 5px; border-radius: 4px; font-size: 0.85em; text-align: center; }
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              font-size: 8.5pt; 
+              line-height: 1.15; 
+              margin: 5px 8px; 
+              color: #000;
+              width: 260px;
+            }
+            .text-center { text-align: center; }
+            .header { margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .section { border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 4px; }
+            table { width: 100%; border-collapse: collapse; margin: 3px 0; }
+            td { vertical-align: top; }
+            .totals { font-weight: bold; margin-top: 5px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 2px 0; }
+            .footer { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; font-size: 7.5pt; }
           </style>
         </head>
-        <body>
-          <div class="center">
-            <h3>ZABALEGUI</h3>
-            <p style="font-size: 0.8em; margin: 2px 0;">Armenta y López 1025</p>
-            <p style="font-size: 0.8em; margin: 2px 0;">Tel: 9541184642</p>
-            <p style="font-size: 0.8em; margin: 2px 0;">Horario: 11:00 - 18:30</p>
+        <body onload="window.print(); window.close();">
+          <div class="text-center header">
+            <h3 style="margin: 0; font-size: 11pt; font-weight: bold; letter-spacing: 1px;">ZABALEGUI</h3>
+            <div style="font-size: 7.5pt; margin-top: 2px;">Armenta y López 1025</div>
+            <div style="font-size: 7.5pt;">Tel: 9541184642</div>
+            <div style="font-size: 7.5pt;">11:00 AM - 6:30 PM</div>
           </div>
-          <div class="dashed"></div>
-          <div style="font-size: 0.85em; margin-bottom: 10px;">
-            <div><strong>Folio:</strong> ${receipt.id}</div>
-            <div><strong>Fecha:</strong> ${new Date(receipt.date).toLocaleString()}</div>
-            <div><strong>Caja:</strong> ${receipt.cashierName}</div>
-            <div><strong>Cliente:</strong> ${receipt.customerName}</div>
+
+          <div style="font-size: 7.5pt; margin-bottom: 4px;">
+            <div style="text-align: center; font-weight: bold; font-size: 8pt; margin-bottom: 3px; background: #eee; padding: 1px;">REIMPRESIÓN</div>
+            <strong>Folio:</strong> ${receipt.id.slice(-8).toUpperCase()}<br/>
+            <strong>Fecha:</strong> ${formattedDate}<br/>
+            <strong>Cajero:</strong> ${receipt.cashierName}<br/>
+            <strong>Cliente:</strong> ${receipt.customerName}<br/>
           </div>
-          <div class="dashed"></div>
-          <table>
-            <thead>
-              <tr>
-                <th>Cant.</th>
-                <th>Producto</th>
-                <th style="text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${receipt.items.map(item => `
-                <tr>
-                  <td>${item.quantity}</td>
-                  <td>${item.name}</td>
-                  <td style="text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-          <div class="dashed"></div>
-          <div style="font-size: 0.85em; display: flex; flex-direction: column; gap: 3px;">
-            <div class="flex-between">
+
+          <div class="section">
+            <table style="width: 100%;">
+              <tbody>
+                ${itemsRows}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section totals">
+            <div class="totals-row">
               <span>Subtotal:</span>
               <span>$${receipt.subtotal.toFixed(2)}</span>
             </div>
             ${receipt.discount > 0 ? `
-              <div class="flex-between">
-                <span>Descto. Puntos:</span>
-                <span>-$${receipt.discount.toFixed(2)}</span>
-              </div>
+            <div class="totals-row" style="color: #000;">
+              <span>Desc. Puntos:</span>
+              <span>-$${receipt.discount.toFixed(2)}</span>
+            </div>
             ` : ""}
-            <div class="flex-between" style="font-weight: bold; font-size: 1.1em;">
+            <div class="totals-row" style="font-size: 9.5pt; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px;">
               <span>TOTAL:</span>
               <span>$${receipt.total.toFixed(2)} MXN</span>
             </div>
-          </div>
-          <div class="dashed"></div>
-          <div style="font-size: 0.85em; display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px;">
-            <div class="flex-between">
-              <span>Pago con:</span>
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt; margin-top: 3px;">
+              <span>Método Pago:</span>
               <span>${receipt.paymentMethod}</span>
             </div>
             ${receipt.paymentMethod === "Efectivo" ? `
-              <div class="flex-between">
-                <span>Efectivo Recibido:</span>
-                <span>$${receipt.cashReceived.toFixed(2)}</span>
-              </div>
-              <div class="flex-between">
-                <span>Cambio:</span>
-                <span>$${receipt.change.toFixed(2)}</span>
-              </div>
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt;">
+              <span>Efectivo Rec.:</span>
+              <span>$${(receipt.cashReceived || receipt.total).toFixed(2)}</span>
+            </div>
+            <div class="totals-row" style="font-weight: normal; font-size: 7.5pt;">
+              <span>Cambio:</span>
+              <span>$${(receipt.change || 0).toFixed(2)}</span>
+            </div>
             ` : ""}
           </div>
+
           ${receipt.customerId ? `
-            <div class="points-box">
-              <div>Puntos Ganados: <strong>+${receipt.pointsEarned}</strong></div>
-              ${receipt.pointsUsed > 0 ? `<div>Puntos Redimidos: <strong>-${receipt.pointsUsed}</strong></div>` : ""}
-            </div>
-          ` : ""}
-          <div class="center" style="margin-top: 20px; font-size: 0.85em;">
-            <strong>¡Gracias por tu compra!</strong>
-            <p style="margin: 2px 0;">Vuelve pronto por tus puntos VIP</p>
+          <div class="text-center" style="font-size: 7.5pt; background: #eee; padding: 3px; border-radius: 3px; margin-top: 4px;">
+            Puntos Ganados: <strong>+${receipt.pointsEarned}</strong>
           </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          ` : ""}
+
+          <div class="text-center footer">
+            <strong>¡Gracias por tu compra!</strong><br/>
+            <span>zabalegui.pos</span>
+          </div>
         </body>
       </html>
-    `;
-    printWindow.document.write(ticketHtml);
+    `);
     printWindow.document.close();
   };
 
