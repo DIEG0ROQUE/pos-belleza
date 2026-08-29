@@ -39,6 +39,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   // Reclamo de puntos posteriores
   const [claimPhone, setClaimPhone] = useState("");
   const [claimFolio, setClaimFolio] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
 
   // Cargar turno activo al iniciar
   useEffect(() => {
@@ -399,6 +400,51 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
       </html>
     `);
     popupWin.document.close();
+  };
+
+  const sendWhatsAppTicket = (receipt, phoneNumber) => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      showToast("Por favor ingrese un número de WhatsApp de 10 dígitos.", "error");
+      return;
+    }
+
+    const formattedDate = new Date(receipt.date).toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const itemsText = receipt.items.map(item => 
+      `• ${item.quantity} x ${item.name} - $${(item.price * item.quantity).toFixed(2)}`
+    ).join("\n");
+
+    const message = `🌸 *ZABALEGUI* 🌸\n` +
+      `Dirección: Armenta y López 1025\n` +
+      `Teléfono de Tienda: 9541184642\n` +
+      `------------------------------------------------\n` +
+      `*TICKET DE COMPRA*\n` +
+      `*Folio:* ${receipt.id.slice(-8).toUpperCase()}\n` +
+      `*Fecha:* ${formattedDate}\n` +
+      `*Cajero:* ${receipt.cashierName}\n` +
+      `*Cliente:* ${receipt.customerName}\n` +
+      `------------------------------------------------\n` +
+      `*PRODUCTOS:*\n` +
+      `${itemsText}\n` +
+      `------------------------------------------------\n` +
+      `*Subtotal:* $${receipt.subtotal.toFixed(2)}\n` +
+      (receipt.discount > 0 ? `*Descto. Puntos:* -$${receipt.discount.toFixed(2)}\n` : "") +
+      `*TOTAL:* $${receipt.total.toFixed(2)} MXN\n` +
+      `*Método de Pago:* ${receipt.paymentMethod}\n` +
+      `------------------------------------------------\n` +
+      `*¡Gracias por tu compra!* ✨\n` +
+      `Vuelve pronto para seguir acumulando puntos VIP.`;
+
+    const cleanPhone = "52" + phoneNumber.replace(/\D/g, ""); // Prefijo México
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank");
+    showToast("Abriendo WhatsApp...", "success");
   };
 
   // Buscar productos manualmente por nombre o código de barras
@@ -783,6 +829,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
       });
 
       // Resetear estados
+      setWhatsappNumber(associatedClient ? associatedClient.phone : "");
       setCart([]);
       setAssociatedClient(null);
       setCashReceived("");
@@ -1442,6 +1489,30 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             >
               Imprimir Ticket
             </button>
+
+            <div style={{ marginTop: "1rem", borderTop: "1px dashed #ccc", paddingTop: "1rem" }}>
+              <label className="input-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem", fontFamily: "'Outfit', sans-serif" }}>
+                Enviar Ticket por WhatsApp
+              </label>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="WhatsApp (10 dígitos)"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value.replace(/\D/g, ""))}
+                  maxLength={10}
+                  style={{ flex: 1, padding: "0.5rem", fontSize: "0.85rem", fontFamily: "sans-serif" }}
+                />
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => sendWhatsAppTicket(lastSaleReceipt, whatsappNumber)}
+                  style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

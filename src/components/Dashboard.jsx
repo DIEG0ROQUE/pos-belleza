@@ -26,6 +26,19 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const [manualPointsAdjustment, setManualPointsAdjustment] = useState("");
   const [showPointsModal, setShowPointsModal] = useState(false);
 
+  // Compartir ticket de historial por WhatsApp
+  const [whatsappShareNumber, setWhatsappShareNumber] = useState("");
+
+  useEffect(() => {
+    if (selectedReceipt) {
+      const usersList = db.getUsers();
+      const client = usersList.find(u => u.id === selectedReceipt.customerId && u.role === "cliente");
+      setWhatsappShareNumber(client ? client.phone : "");
+    } else {
+      setWhatsappShareNumber("");
+    }
+  }, [selectedReceipt]);
+
   // --- Estados de Gestión de Personal ---
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [editingStaffUser, setEditingStaffUser] = useState(null);
@@ -284,6 +297,51 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
       </html>
     `);
     printWindow.document.close();
+  };
+
+  const sendWhatsAppTicket = (receipt, phoneNumber) => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      if (showToast) showToast("Por favor ingrese un número de WhatsApp de 10 dígitos.", "error");
+      return;
+    }
+
+    const formattedDate = new Date(receipt.date).toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const itemsText = receipt.items.map(item => 
+      `• ${item.quantity} x ${item.name} - $${(item.price * item.quantity).toFixed(2)}`
+    ).join("\n");
+
+    const message = `🌸 *ZABALEGUI* 🌸\n` +
+      `Dirección: Armenta y López 1025\n` +
+      `Teléfono de Tienda: 9541184642\n` +
+      `------------------------------------------------\n` +
+      `*TICKET DE COMPRA*\n` +
+      `*Folio:* ${receipt.id.slice(-8).toUpperCase()}\n` +
+      `*Fecha:* ${formattedDate}\n` +
+      `*Cajero:* ${receipt.cashierName}\n` +
+      `*Cliente:* ${receipt.customerName}\n` +
+      `------------------------------------------------\n` +
+      `*PRODUCTOS:*\n` +
+      `${itemsText}\n` +
+      `------------------------------------------------\n` +
+      `*Subtotal:* $${receipt.subtotal.toFixed(2)}\n` +
+      (receipt.discount > 0 ? `*Descto. Puntos:* -$${receipt.discount.toFixed(2)}\n` : "") +
+      `*TOTAL:* $${receipt.total.toFixed(2)} MXN\n` +
+      `*Método de Pago:* ${receipt.paymentMethod}\n` +
+      `------------------------------------------------\n` +
+      `*¡Gracias por tu compra!* ✨\n` +
+      `Vuelve pronto para seguir acumulando puntos VIP.`;
+
+    const cleanPhone = "52" + phoneNumber.replace(/\D/g, ""); // Prefijo México
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank");
+    if (showToast) showToast("Abriendo WhatsApp...", "success");
   };
 
   const handleDeleteSale = (saleId) => {
@@ -1839,8 +1897,32 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
               )}
             </div>
 
+            <div style={{ marginTop: "1.25rem", borderTop: "1px dashed #ccc", paddingTop: "1rem" }}>
+              <label className="input-label" style={{ fontSize: "0.75rem", marginBottom: "0.25rem", fontFamily: "'Outfit', sans-serif" }}>
+                Compartir Ticket por WhatsApp
+              </label>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="WhatsApp (10 dígitos)"
+                  value={whatsappShareNumber}
+                  onChange={(e) => setWhatsappShareNumber(e.target.value.replace(/\D/g, ""))}
+                  maxLength={10}
+                  style={{ flex: 1, padding: "0.5rem", fontSize: "0.85rem", fontFamily: "sans-serif" }}
+                />
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => sendWhatsAppTicket(selectedReceipt, whatsappShareNumber)}
+                  style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem" }}
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+
             {/* Acciones del Modal */}
-            <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+            <div style={{ display: "flex", gap: "1rem", marginTop: "2.0rem" }}>
               <button 
                 className="btn btn-secondary" 
                 onClick={() => setSelectedReceipt(null)}
