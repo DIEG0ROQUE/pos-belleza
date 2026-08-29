@@ -293,13 +293,14 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             html, body {
               margin: 0;
               padding: 0;
-              width: 47mm; /* Ancho real imprimible de impresoras 58mm */
+              width: 47mm;
               background: #fff;
             }
             body { 
               font-family: 'Courier New', Courier, monospace; 
-              font-size: 7.5pt; 
-              line-height: 1.15; 
+              font-size: 8pt; 
+              font-weight: bold; /* Fuerza a la impresora a usar trazos gruesos de calor */
+              line-height: 1.25; 
               padding: 4px 6px;
               color: #000;
               box-sizing: border-box;
@@ -311,7 +312,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             td { vertical-align: top; }
             .totals { font-weight: bold; margin-top: 5px; }
             .totals-row { display: flex; justify-content: space-between; padding: 2px 0; }
-            .footer { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; font-size: 7.5pt; }
+            .footer { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; font-size: 8pt; }
           </style>
         </head>
         <body onload="window.print(); window.close();">

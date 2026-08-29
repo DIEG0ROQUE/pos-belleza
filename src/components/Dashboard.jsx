@@ -187,13 +187,14 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
             html, body {
               margin: 0;
               padding: 0;
-              width: 47mm; /* Ancho real imprimible de impresoras 58mm */
+              width: 47mm;
               background: #fff;
             }
             body { 
               font-family: 'Courier New', Courier, monospace; 
-              font-size: 7.5pt; 
-              line-height: 1.15; 
+              font-size: 8pt; 
+              font-weight: bold; /* Fuerza a la impresora a usar trazos gruesos de calor */
+              line-height: 1.25; 
               padding: 4px 6px;
               color: #000;
               box-sizing: border-box;
