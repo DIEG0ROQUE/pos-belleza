@@ -152,32 +152,44 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         <head>
           <title>Corte de Caja - Zabalegui</title>
           <style>
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 47mm;
+              background: #fff;
+            }
             body { 
               font-family: 'Courier New', Courier, monospace; 
-              font-size: 11pt; 
-              line-height: 1.3; 
-              margin: 10px; 
+              font-size: 7.5pt; 
+              font-weight: bold;
+              line-height: 1.25; 
+              padding: 4px 6px;
               color: #000;
+              box-sizing: border-box;
             }
             .text-center { text-align: center; }
-            .header { margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
-            .section { border-bottom: 1px dashed #000; padding: 10px 0; margin-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
-            th, td { padding: 4px 0; text-align: left; }
+            .header { margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .section { border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 4px; }
+            table { width: 100%; border-collapse: collapse; margin: 3px 0; font-size: 6.8pt; }
+            th, td { padding: 2px 0; text-align: left; }
             th { border-bottom: 1px solid #000; }
-            .totals { font-weight: bold; margin-top: 10px; }
-            .totals-row { display: flex; justify-content: space-between; padding: 3px 0; }
-            .footer { margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 9pt; }
+            .totals { font-weight: bold; margin-top: 5px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 2px 0; }
+            .footer { margin-top: 15px; border-top: 1px dashed #000; padding-top: 5px; font-size: 7.5pt; }
           </style>
         </head>
         <body onload="window.print(); window.close();">
           <div class="text-center header">
-            <h2 style="margin: 0; font-size: 16pt; font-weight: bold; letter-spacing: 2px;">ZABALEGUI</h2>
-            <div style="font-size: 9pt; margin-top: 3px;">CORTE DE CAJA (ARQUEO)</div>
-            <div style="font-size: 9pt;">Fecha: ${new Date(closedShift.endTime).toLocaleDateString("es-MX")}</div>
+            <h3 style="margin: 0; font-size: 11pt; font-weight: bold; letter-spacing: 1px;">ZABALEGUI</h3>
+            <div style="font-size: 7.5pt; margin-top: 2px;">CORTE DE CAJA (ARQUEO)</div>
+            <div style="font-size: 7.5pt;">Fecha: ${new Date(closedShift.endTime).toLocaleDateString("es-MX")}</div>
           </div>
 
-          <div>
+          <div style="font-size: 7.5pt; margin-bottom: 4px;">
             <strong>Cajero:</strong> ${closedShift.cashierName}<br/>
             <strong>Inicio:</strong> ${new Date(closedShift.startTime).toLocaleTimeString("es-MX")}<br/>
             <strong>Cierre:</strong> ${new Date(closedShift.endTime).toLocaleTimeString("es-MX")}<br/>
@@ -185,15 +197,15 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
           </div>
 
           <div class="section">
-            <div style="font-weight: bold; text-align: center; margin-bottom: 5px;">TRANSACCIONES DEL TURNO</div>
+            <div style="font-weight: bold; text-align: center; margin-bottom: 4px; font-size: 7.5pt;">TRANSACCIONES DEL TURNO</div>
             <table>
               <thead>
                 <tr>
-                  <th>Folio</th>
-                  <th>Hora</th>
-                  <th>Cli</th>
-                  <th>Pago</th>
-                  <th style="text-align: right;">Total</th>
+                  <th style="width: 25%;">Folio</th>
+                  <th style="width: 20%;">Hora</th>
+                  <th style="width: 20%;">Cli</th>
+                  <th style="width: 15%;">Pago</th>
+                  <th style="width: 20%; text-align: right;">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,7 +214,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             </table>
           </div>
 
-          <div class="section totals">
+          <div class="section totals" style="font-size: 7.5pt;">
             <div class="totals-row">
               <span>Fondo Inicial:</span>
               <span>$${closedShift.openingBalance.toFixed(2)}</span>
@@ -215,15 +227,15 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
               <span>Ventas Tarj/Trans:</span>
               <span>$${closedShift.nonCashSales.toFixed(2)}</span>
             </div>
-            <div class="totals-row" style="border-top: 1px dashed #555; padding-top: 3px; font-style: italic;">
+            <div class="totals-row" style="border-top: 1px dashed #000; padding-top: 3px; font-style: italic;">
               <span>- Propias Zabalegui:</span>
               <span>$${ownSales.toFixed(2)}</span>
             </div>
-            <div class="totals-row" style="font-style: italic; color: #555;">
+            <div class="totals-row" style="font-style: italic;">
               <span>- Renta Espacio:</span>
               <span>$${spaceRentalTotal.toFixed(2)}</span>
             </div>
-            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px;">
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 3px; margin-top: 2px;">
               <span>Efectivo Esperado:</span>
               <span>$${closedShift.expectedBalance.toFixed(2)}</span>
             </div>
@@ -235,7 +247,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
               <span>Diferencia:</span>
               <span>$${closedShift.discrepancy.toFixed(2)}</span>
             </div>
-            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 5px; font-size: 12pt;">
+            <div class="totals-row" style="border-top: 1px solid #000; padding-top: 3px; font-size: 9pt; font-weight: bold;">
               <span>TOTAL VENTAS:</span>
               <span>$${closedShift.totalSales.toFixed(2)}</span>
             </div>
@@ -245,7 +257,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
             <div>Firma del Cajero</div>
             <br/><br/>
             <div>_______________________</div>
-            <div style="margin-top: 15px;">Zabalegui POS v2.0</div>
+            <div style="margin-top: 10px; font-size: 7pt;">Zabalegui POS v2.0</div>
           </div>
         </body>
       </html>
