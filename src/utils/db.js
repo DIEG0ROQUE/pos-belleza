@@ -1000,5 +1000,64 @@ export const db = {
     const expenses = db.getExpenses();
     const filtered = expenses.filter(e => e.id !== id);
     db.saveExpenses(filtered);
+  },
+
+  // --- SINCRONIZACIÓN CON BASE DE DATOS MYSQL (HOSTINGER API) ---
+  api: {
+    // Sincronizar todos los datos locales con el backend de Hostinger
+    syncAll: async () => {
+      try {
+        const products = db.getProducts();
+        const users = db.getUsers();
+        const sales = db.getSales();
+        const rewards = db.getRewards();
+        const shifts = db.getShifts();
+        const expenses = db.getExpenses();
+        const suppliers = db.getSuppliers();
+
+        await Promise.allSettled([
+          fetch("/api/products.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ products }) }),
+          fetch("/api/users.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ users }) }),
+          fetch("/api/sales.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sales }) }),
+          fetch("/api/rewards.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rewards }) }),
+          fetch("/api/shifts.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shifts }) }),
+          fetch("/api/expenses.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expenses }) }),
+          fetch("/api/suppliers.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ suppliers }) })
+        ]);
+        return { success: true, message: "Sincronización completada con Hostinger MySQL" };
+      } catch (err) {
+        console.warn("API de Hostinger no disponible o trabajando en modo offline:", err);
+        return { success: false, error: err.message };
+      }
+    },
+
+    // Cargar datos remotos desde MySQL hacia la sesión local
+    loadFromRemote: async () => {
+      try {
+        const [prodRes, userRes, salesRes, rewRes] = await Promise.allSettled([
+          fetch("/api/products.php").then(r => r.json()),
+          fetch("/api/users.php").then(r => r.json()),
+          fetch("/api/sales.php").then(r => r.json()),
+          fetch("/api/rewards.php").then(r => r.json())
+        ]);
+
+        if (prodRes.status === "fulfilled" && prodRes.value?.success && prodRes.value.data?.length) {
+          db.saveProducts(prodRes.value.data);
+        }
+        if (userRes.status === "fulfilled" && userRes.value?.success && userRes.value.data?.length) {
+          db.saveUsers(userRes.value.data);
+        }
+        if (salesRes.status === "fulfilled" && salesRes.value?.success && salesRes.value.data?.length) {
+          db.saveSales(salesRes.value.data);
+        }
+        if (rewRes.status === "fulfilled" && rewRes.value?.success && rewRes.value.data?.length) {
+          db.saveRewards(rewRes.value.data);
+        }
+        return { success: true };
+      } catch (err) {
+        console.warn("Modo local activo (sin conexión API):", err);
+        return { success: false, error: err.message };
+      }
+    }
   }
 };
