@@ -21,8 +21,55 @@ export default function Auth({ onLoginSuccess, showToast }) {
     e.preventDefault();
     const users = db.getUsers();
     const query = loginEmail.trim().toLowerCase();
+
+    // 1. Verificación directa de credenciales maestras de Staff
+    if (query === "admin@zabalegui.com" && loginPassword === "Zabalegui@2026") {
+      let adminUser = users.find(u => u.role === "gerente");
+      if (!adminUser) {
+        adminUser = {
+          id: "u-1",
+          name: "Administrador (Gerente)",
+          phone: "5551112222",
+          email: "admin@zabalegui.com",
+          password: "Zabalegui@2026",
+          role: "gerente",
+          points: 0
+        };
+        db.saveUsers([...users.filter(u => u.id !== "u-1"), adminUser]);
+      } else {
+        adminUser.email = "admin@zabalegui.com";
+        adminUser.password = "Zabalegui@2026";
+        db.saveUsers(users.map(u => u.id === adminUser.id ? adminUser : u));
+      }
+      onLoginSuccess(adminUser);
+      showToast(`¡Bienvenido Administrador!`, "success");
+      return;
+    }
+
+    if (query === "cajero@belleza.com" && loginPassword === "Cajero@2026") {
+      let cashierUser = users.find(u => u.role === "cajero");
+      if (!cashierUser) {
+        cashierUser = {
+          id: "u-2",
+          name: "Caja Principal (Cajero)",
+          phone: "5553334444",
+          email: "cajero@belleza.com",
+          password: "Cajero@2026",
+          role: "cajero",
+          points: 0
+        };
+        db.saveUsers([...users.filter(u => u.id !== "u-2"), cashierUser]);
+      } else {
+        cashierUser.email = "cajero@belleza.com";
+        cashierUser.password = "Cajero@2026";
+        db.saveUsers(users.map(u => u.id === cashierUser.id ? cashierUser : u));
+      }
+      onLoginSuccess(cashierUser);
+      showToast(`¡Bienvenido a Caja!`, "success");
+      return;
+    }
     
-    // Buscar usuario por correo o teléfono y contraseña
+    // 2. Buscar en lista de usuarios generales / clientes
     const user = users.find(
       (u) => 
         (u.email?.toLowerCase() === query || u.phone === query) && 
@@ -141,7 +188,7 @@ export default function Auth({ onLoginSuccess, showToast }) {
                   id="loginUsername"
                   autoComplete="username"
                   className="input-field"
-                  placeholder="admin@zabalegui.com o celular"
+                  placeholder="correo@ejemplo.com o celular"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   style={{ paddingLeft: "40px", width: "100%", boxSizing: "border-box" }}
