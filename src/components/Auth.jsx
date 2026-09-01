@@ -123,7 +123,7 @@ export default function Auth({ onLoginSuccess, showToast }) {
 
         {!isRegister ? (
           /* LOGIN FORM */
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} method="post" action="#" autoComplete="on">
             <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
               <h2 style={{ marginBottom: "0.25rem", fontSize: "1.4rem" }}>Iniciar Sesión</h2>
               <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
@@ -132,13 +132,16 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Correo Electrónico o Celular</label>
+              <label className="input-label" htmlFor="loginUsername">Correo Electrónico o Celular</label>
               <div style={{ position: "relative" }}>
                 <Mail size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="text"
+                  name="username"
+                  id="loginUsername"
+                  autoComplete="username"
                   className="input-field"
-                  placeholder="ejemplo@correo.com o 10 dígitos"
+                  placeholder="admin@zabalegui.com o celular"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   style={{ paddingLeft: "40px", width: "100%", boxSizing: "border-box" }}
@@ -148,11 +151,14 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <div className="input-group" style={{ marginBottom: "1.75rem" }}>
-              <label className="input-label">Contraseña</label>
+              <label className="input-label" htmlFor="loginPassword">Contraseña</label>
               <div style={{ position: "relative" }}>
                 <Lock size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="password"
+                  name="password"
+                  id="loginPassword"
+                  autoComplete="current-password"
                   className="input-field"
                   placeholder="••••••••"
                   value={loginPassword}
@@ -164,7 +170,7 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem", fontSize: "1rem" }}>
-              <LogIn size={18} /> Entrar
+              <LogIn size={18} /> Iniciar Sesión
             </button>
           </form>
         ) : (
@@ -184,16 +190,19 @@ export default function Auth({ onLoginSuccess, showToast }) {
                 fontWeight: "600",
                 marginTop: "0.5rem"
               }}>
-                <Gift size={14} /> ¡Gana 20 puntos al registrarte!
+                <Gift size={14} /> ¡Gana 200 puntos al registrarte!
               </div>
             </div>
 
             <div className="input-group">
-              <label className="input-label">Nombre Completo *</label>
+              <label className="input-label" htmlFor="regName">Nombre Completo *</label>
               <div style={{ position: "relative" }}>
                 <User size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="text"
+                  name="name"
+                  id="regName"
+                  autoComplete="name"
                   className="input-field"
                   placeholder="Tu nombre completo"
                   value={regName}
@@ -205,11 +214,14 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Número de Celular * (Servirá para buscarte en Caja)</label>
+              <label className="input-label" htmlFor="regPhone">Número de Celular * (Para acumular puntos en Caja)</label>
               <div style={{ position: "relative" }}>
                 <Phone size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="tel"
+                  name="tel"
+                  id="regPhone"
+                  autoComplete="tel"
                   className="input-field"
                   placeholder="10 dígitos (Ej: 5551234567)"
                   value={regPhone}
@@ -222,11 +234,14 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Correo Electrónico (Opcional)</label>
+              <label className="input-label" htmlFor="regEmail">Correo Electrónico (Opcional)</label>
               <div style={{ position: "relative" }}>
                 <Mail size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="email"
+                  name="email"
+                  id="regEmail"
+                  autoComplete="email"
                   className="input-field"
                   placeholder="correo@ejemplo.com"
                   value={regEmail}
@@ -237,11 +252,14 @@ export default function Auth({ onLoginSuccess, showToast }) {
             </div>
 
             <div className="input-group" style={{ marginBottom: "1.5rem" }}>
-              <label className="input-label">Crear Contraseña *</label>
+              <label className="input-label" htmlFor="regPassword">Crear Contraseña *</label>
               <div style={{ position: "relative" }}>
                 <Lock size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="password"
+                  name="new-password"
+                  id="regPassword"
+                  autoComplete="new-password"
                   className="input-field"
                   placeholder="Min. 6 caracteres"
                   value={regPassword}
