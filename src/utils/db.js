@@ -448,7 +448,7 @@ export const db = {
     const products = db.getProducts();
     const newProduct = {
       ...product,
-      id: `prod-${Date.now()}`,
+      id: product.id || `prod-${Date.now()}`,
       stock: parseInt(product.stock) || 0,
       price: parseFloat(product.price) || 0,
       cost: parseFloat(product.cost) || 0,
@@ -458,6 +458,14 @@ export const db = {
     };
     products.push(newProduct);
     db.saveProducts(products);
+
+    // Sincronizar en tiempo real con MySQL
+    fetch("/api/products.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newProduct)
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
     return newProduct;
   },
 
@@ -476,6 +484,14 @@ export const db = {
         pointsCost: parseInt(updatedProduct.pointsCost) || Math.round(updatedProduct.price * 10)
       };
       db.saveProducts(products);
+
+      // Sincronizar en tiempo real con MySQL
+      fetch("/api/products.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(products[index])
+      }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
       return true;
     }
     return false;
@@ -485,6 +501,11 @@ export const db = {
     let products = db.getProducts();
     products = products.filter(p => p.id !== id);
     db.saveProducts(products);
+
+    // Eliminar en tiempo real de MySQL
+    fetch(`/api/products.php?id=${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
   },
 
   // --- USUARIOS ---

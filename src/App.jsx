@@ -49,9 +49,12 @@ export default function App() {
     }
   }, [currentView, currentUser]);
 
-  // Cargar productos iniciales
+  // Cargar productos y sincronizar con la base de datos MySQL en Hostinger
   useEffect(() => {
     refreshProducts();
+    db.api.loadFromRemote().then(() => {
+      refreshProducts();
+    }).catch(err => console.warn("Modo local activo:", err));
   }, []);
 
   const refreshProducts = () => {
