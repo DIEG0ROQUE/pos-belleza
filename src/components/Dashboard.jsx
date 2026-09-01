@@ -143,23 +143,25 @@ export default function Dashboard({ currentUser = {}, onUpdateCurrentUser, produ
   const dailySales = last7Days.map(dateStr => {
     const daySales = sales.filter(s => s.date && s.date.startsWith(dateStr));
     const revenue = daySales.reduce((sum, s) => sum + (s.total || 0), 0);
+    const parts = (dateStr || "").split("-");
+    const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
     return {
       date: dateStr,
-      label: new Date(dateStr + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric" }),
+      label,
       value: revenue
     };
   });
 
-  const maxSaleValue = Math.max(...dailySales.map(d => d.value), 1000);
+  const maxSaleValue = Math.max(...dailySales.map(d => d.value || 0), 1000);
   const chartHeight = 180;
   const chartWidth = 500;
   const padding = 40;
 
   const svgPoints = dailySales.map((d, index) => {
     const x = padding + (index * (chartWidth - 2 * padding) / Math.max(1, dailySales.length - 1));
-    const y = chartHeight - padding - (d.value * (chartHeight - 2 * padding) / maxSaleValue);
+    const y = chartHeight - padding - (((d.value || 0) * (chartHeight - 2 * padding)) / Math.max(1, maxSaleValue));
     return `${x},${y}`;
-  }).join(" ");
+  }).join(" ") || "0,0";
 
   // --- 4. Filtrado del Historial de Transacciones ---
   const filteredSales = sales.filter(s => {
