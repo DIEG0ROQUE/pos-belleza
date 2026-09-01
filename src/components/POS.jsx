@@ -697,8 +697,8 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
       return;
     }
 
-    // 4. Calcular puntos acumulados (10% del total de la compra)
-    const pointsToEarn = Math.round(sale.total * 0.1);
+    // 4. Calcular puntos acumulados (10 puntos por cada $1 de compra)
+    const pointsToEarn = Math.round(sale.total * 10);
     if (pointsToEarn <= 0) {
       showToast("Esta compra tiene un total de $0.00, no acumula puntos.", "warning");
       return;
@@ -773,16 +773,11 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
 
   // Cálculos de montos
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
-  // Regla: 1 punto de recompensa equivale a $1 peso de descuento si eligen usar puntos
-  const pointsAvailable = associatedClient ? associatedClient.points : 0;
-  
-  // Determinar descuento si pagan con puntos
-  const discount = paymentMethod === "Puntos" ? Math.min(subtotal, pointsAvailable) : 0;
-  const total = subtotal - discount;
+  const discount = 0;
+  const total = subtotal;
 
-  // Puntos ganados en la compra (10% del total real pagado con efectivo/tarjeta)
-  const pointsToEarn = paymentMethod !== "Puntos" ? Math.round(total * 0.1) : 0;
+  // Puntos ganados en la compra: 10 puntos por cada $1 peso de compra
+  const pointsToEarn = Math.round(total * 10);
 
   // Finalizar compra
   const handleFinalizeSale = () => {
@@ -1161,13 +1156,6 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                 <span style={{ color: "var(--text-muted)" }}>Subtotal</span>
                 <strong>${subtotal.toFixed(2)}</strong>
               </div>
-              
-              {associatedClient && paymentMethod === "Puntos" && (
-                <div style={{ display: "flex", justifyContent: "space-between", color: "#a82e3b" }}>
-                  <span>Descuento de Puntos</span>
-                  <strong>-${discount.toFixed(2)}</strong>
-                </div>
-              )}
 
               <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.5rem 0" }} />
 
@@ -1258,7 +1246,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
 
             <div style={{ marginBottom: "1.5rem" }}>
               <label className="input-label" style={{ marginBottom: "0.5rem" }}>Método de Pago</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <button
                   onClick={() => setPaymentMethod("Efectivo")}
                   style={{
@@ -1275,7 +1263,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                     transition: "var(--transition-fast)"
                   }}
                 >
-                  <DollarSign size={18} color="green" /> Efectivo
+                  <DollarSign size={20} color="green" /> Efectivo
                 </button>
 
                 <button
@@ -1294,41 +1282,32 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                     transition: "var(--transition-fast)"
                   }}
                 >
-                  <CreditCard size={18} color="blue" /> Tarjeta
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (!associatedClient) {
-                      showToast("Debes asociar un cliente para pagar con puntos.", "error");
-                      return;
-                    }
-                    if (associatedClient.points <= 0) {
-                      showToast("El cliente no tiene puntos para canjear.", "error");
-                      return;
-                    }
-                    setPaymentMethod("Puntos");
-                  }}
-                  className={!associatedClient ? "btn-disabled" : ""}
-                  style={{
-                    padding: "0.75rem 0.5rem",
-                    borderRadius: "10px",
-                    border: paymentMethod === "Puntos" ? "2px solid var(--primary-color)" : "1px solid var(--border-color)",
-                    background: paymentMethod === "Puntos" ? "var(--bg-app)" : "white",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "0.25rem",
-                    transition: "var(--transition-fast)",
-                    opacity: !associatedClient ? 0.5 : 1
-                  }}
-                >
-                  <Award size={18} color="gold" /> Puntos VIP
+                  <CreditCard size={20} color="blue" /> Tarjeta (Terminal)
                 </button>
               </div>
             </div>
+
+            {associatedClient && (
+              <div style={{
+                background: "rgba(49, 29, 32, 0.04)",
+                padding: "0.75rem 1rem",
+                borderRadius: "var(--radius-md)",
+                marginBottom: "1.25rem",
+                fontSize: "0.85rem",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <div>
+                  <span style={{ color: "var(--text-muted)", display: "block", fontSize: "0.75rem" }}>Cliente VIP Asociado</span>
+                  <strong>{associatedClient.name}</strong>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: "var(--accent-gold-bright)", fontWeight: "700", display: "block" }}>+{pointsToEarn} pts</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>ganados con esta venta</span>
+                </div>
+              </div>
+            )}
 
             {paymentMethod === "Efectivo" && (
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
@@ -1356,21 +1335,6 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                     Cambio: ${(parseFloat(cashReceived) - total).toFixed(2)} MXN
                   </div>
                 )}
-              </div>
-            )}
-
-            {paymentMethod === "Puntos" && (
-              <div style={{
-                background: "rgba(197, 155, 142, 0.1)",
-                padding: "1rem",
-                borderRadius: "var(--radius-md)",
-                marginBottom: "1.5rem",
-                fontSize: "0.9rem"
-              }}>
-                <p style={{ margin: "0 0 0.5rem 0" }}>El cliente pagará usando sus puntos:</p>
-                <div>Puntos Disponibles: <strong>{pointsAvailable} pts</strong></div>
-                <div>Descuento Aplicado: <strong>-${discount.toFixed(2)} MXN</strong></div>
-                <div style={{ marginTop: "0.25rem" }}>Total Restante a Pagar: <strong>${total.toFixed(2)} MXN</strong></div>
               </div>
             )}
 

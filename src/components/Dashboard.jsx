@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   DollarSign, ShoppingCart, UserCheck, TrendingUp, Award, AlertCircle, 
-  Calendar, Search, Printer, X, Eye, FileText, List, Trash2, Plus, Edit, Save 
+  Calendar, Search, Printer, X, Eye, FileText, List, Trash2, Plus, Edit, Save,
+  Gift, Sparkles, Tag, Package 
 } from "lucide-react";
 import { db } from "../utils/db";
 
@@ -11,7 +12,7 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const users = db.getUsers();
   const clients = users.filter(u => u.role === "cliente");
 
-  // Pestaña activa: "metrics" o "transactions"
+  // Pestaña activa: "metrics", "transactions", "shifts", "clients", "staff", "rewards"
   const [activeTab, setActiveTab] = useState("metrics");
 
   // Estados del Historial de Transacciones
@@ -25,6 +26,19 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const [selectedLoyaltyClient, setSelectedLoyaltyClient] = useState(null);
   const [manualPointsAdjustment, setManualPointsAdjustment] = useState("");
   const [showPointsModal, setShowPointsModal] = useState(false);
+
+  // --- Estados de Gestión de Recompensas VIP ---
+  const [rewardsList, setRewardsList] = useState(db.getRewards());
+  const [rewardSearch, setRewardSearch] = useState("");
+  const [rewardCategoryFilter, setRewardCategoryFilter] = useState("Todos");
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [editingReward, setEditingReward] = useState(null);
+  const [rewardFormName, setRewardFormName] = useState("");
+  const [rewardFormCategory, setRewardFormCategory] = useState("Productos");
+  const [rewardFormPointsCost, setRewardFormPointsCost] = useState("1000");
+  const [rewardFormDescription, setRewardFormDescription] = useState("");
+  const [rewardFormImage, setRewardFormImage] = useState("");
+  const [selectedLinkedProductId, setSelectedLinkedProductId] = useState("");
 
   // Compartir ticket de historial por WhatsApp
   const [whatsappShareNumber, setWhatsappShareNumber] = useState("");
@@ -633,6 +647,91 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
     }
   };
 
+  // --- Handlers de Gestión de Recompensas VIP ---
+  const handleOpenAddRewardModal = () => {
+    setEditingReward(null);
+    setRewardFormName("");
+    setRewardFormCategory("Productos");
+    setRewardFormPointsCost("1000");
+    setRewardFormDescription("");
+    setRewardFormImage("https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500&q=80");
+    setSelectedLinkedProductId("");
+    setShowRewardModal(true);
+  };
+
+  const handleOpenEditRewardModal = (reward) => {
+    setEditingReward(reward);
+    setRewardFormName(reward.name);
+    setRewardFormCategory(reward.category || "Productos");
+    setRewardFormPointsCost(reward.pointsCost.toString());
+    setRewardFormDescription(reward.description || "");
+    setRewardFormImage(reward.image || "");
+    setSelectedLinkedProductId(reward.linkedProductId || "");
+    setShowRewardModal(true);
+  };
+
+  const handleSaveReward = (e) => {
+    e.preventDefault();
+    if (!rewardFormName || !rewardFormPointsCost) {
+      showToast("Por favor ingresa el nombre del premio y los puntos requeridos.", "error");
+      return;
+    }
+    const pts = parseInt(rewardFormPointsCost);
+    if (isNaN(pts) || pts <= 0) {
+      showToast("El costo en puntos debe ser un número mayor a 0.", "error");
+      return;
+    }
+
+    try {
+      const rewardData = {
+        name: rewardFormName,
+        category: rewardFormCategory,
+        pointsCost: pts,
+        description: rewardFormDescription,
+        image: rewardFormImage || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80",
+        linkedProductId: selectedLinkedProductId || null
+      };
+
+      if (editingReward) {
+        db.updateReward({ ...rewardData, id: editingReward.id });
+        showToast("Recompensa VIP actualizada correctamente.", "success");
+      } else {
+        db.addReward(rewardData);
+        showToast("Nueva recompensa agregada al catálogo VIP.", "success");
+      }
+      setRewardsList(db.getRewards());
+      setShowRewardModal(false);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const handleDeleteReward = (rewardId, rewardName) => {
+    if (window.confirm(`¿Estás seguro de eliminar la recompensa "${rewardName}"? Los clientes ya no podrán canjearla.`)) {
+      try {
+        db.deleteReward(rewardId);
+        setRewardsList(db.getRewards());
+        showToast("Recompensa eliminada con éxito.", "success");
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+  };
+
+  const handleSelectLinkedProduct = (prodId) => {
+    setSelectedLinkedProductId(prodId);
+    if (prodId) {
+      const prod = products.find(p => p.id === prodId);
+      if (prod) {
+        setRewardFormName(prod.name);
+        setRewardFormCategory(prod.category || "Productos");
+        setRewardFormPointsCost((prod.price * 10).toString()); // Sugerencia automática: precio * 10
+        setRewardFormImage(prod.image || "");
+        setRewardFormDescription(`Producto físico del catálogo (${prod.category}). Existencias: ${prod.stock} pzas.`);
+      }
+    }
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -768,6 +867,23 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
           }}
         >
           <Award size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Clientes VIP
+        </button>
+        <button
+          onClick={() => setActiveTab("rewards")}
+          className={`nav-button ${activeTab === "rewards" ? "btn-primary" : "btn-secondary"}`}
+          style={{
+            padding: "0.5rem 1.25rem",
+            borderRadius: "20px",
+            border: activeTab === "rewards" ? "none" : "1px solid var(--border-color)",
+            background: activeTab === "rewards" ? "var(--primary-color)" : "white",
+            color: activeTab === "rewards" ? "white" : "var(--text-dark)",
+            fontWeight: "600",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            transition: "var(--transition-fast)"
+          }}
+        >
+          <Gift size={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} /> Recompensas VIP
         </button>
         <button
           onClick={() => setActiveTab("staff")}
@@ -1703,6 +1819,208 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
         );
       })()}
 
+      {/* --- CONTENIDO PESTAÑA RECOMPENSAS VIP --- */}
+      {activeTab === "rewards" && (() => {
+        const filteredRewards = rewardsList.filter(r => {
+          const matchesCategory = rewardCategoryFilter === "Todos" || r.category === rewardCategoryFilter;
+          const matchesSearch = r.name.toLowerCase().includes(rewardSearch.toLowerCase()) || 
+            (r.description && r.description.toLowerCase().includes(rewardSearch.toLowerCase()));
+          return matchesCategory && matchesSearch;
+        });
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            
+            {/* Banner Informativo y Botón de Creación */}
+            <div className="glass-panel" style={{ padding: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "1.3rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <Gift size={22} color="var(--primary-color)" /> Catálogo de Recompensas y Premios VIP
+                </h2>
+                <p style={{ color: "var(--text-muted)", margin: "0.35rem 0 0 0", fontSize: "0.9rem" }}>
+                  Define los productos, regalos y cupones que los clientes pueden canjear con sus puntos acumulados.
+                </p>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  background: "rgba(197, 155, 142, 0.12)",
+                  padding: "0.35rem 0.75rem",
+                  borderRadius: "20px",
+                  fontSize: "0.85rem",
+                  color: "var(--primary-color)",
+                  fontWeight: "600",
+                  marginTop: "0.75rem",
+                  border: "1px solid rgba(197, 155, 142, 0.3)"
+                }}>
+                  <Sparkles size={14} color="var(--accent-gold-bright)" />
+                  Regla Activa: $1.00 MXN de compra = 10 Puntos VIP
+                </div>
+              </div>
+
+              <button 
+                className="btn btn-primary"
+                onClick={handleOpenAddRewardModal}
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1.25rem" }}
+              >
+                <Plus size={18} /> Nueva Recompensa
+              </button>
+            </div>
+
+            {/* Filtros y Buscador */}
+            <div className="glass-panel" style={{ padding: "1.25rem" }}>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                
+                {/* Buscador */}
+                <div style={{ position: "relative", flex: 1, minWidth: "260px" }}>
+                  <Search size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Buscar por nombre de premio o descripción..."
+                    value={rewardSearch}
+                    onChange={(e) => setRewardSearch(e.target.value)}
+                    style={{ paddingLeft: "38px", width: "100%", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                {/* Filtro por Categoría */}
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {["Todos", "Productos", "Cupones", "Descuentos", "Servicios"].map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setRewardCategoryFilter(cat)}
+                      style={{
+                        padding: "0.45rem 0.9rem",
+                        borderRadius: "20px",
+                        border: rewardCategoryFilter === cat ? "none" : "1px solid var(--border-color)",
+                        background: rewardCategoryFilter === cat ? "var(--primary-color)" : "white",
+                        color: rewardCategoryFilter === cat ? "white" : "var(--text-dark)",
+                        fontWeight: "600",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        transition: "var(--transition-fast)"
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+            </div>
+
+            {/* Grid de Tarjetas de Recompensas */}
+            <div className="grid grid-3" style={{ gap: "1.5rem" }}>
+              {filteredRewards.map(reward => (
+                <div key={reward.id} className="glass-panel" style={{
+                  borderRadius: "var(--radius-md)",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  border: "1px solid rgba(49, 29, 32, 0.08)",
+                  boxShadow: "var(--shadow-sm)"
+                }}>
+                  {/* Thumbnail de Imagen */}
+                  <div style={{ height: "160px", overflow: "hidden", position: "relative", background: "#f5f0ee" }}>
+                    <img 
+                      src={reward.image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"} 
+                      alt={reward.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                    <span style={{
+                      position: "absolute",
+                      top: "10px",
+                      left: "10px",
+                      fontSize: "0.75rem",
+                      color: reward.category === "Descuentos" || reward.category === "Cupones" ? "#8a31b5" : "#3174b5",
+                      background: "rgba(255,255,255,0.94)",
+                      padding: "0.2rem 0.6rem",
+                      borderRadius: "20px",
+                      fontWeight: "700",
+                      boxShadow: "var(--shadow-sm)"
+                    }}>
+                      {reward.category}
+                    </span>
+                    
+                    <span style={{
+                      position: "absolute",
+                      bottom: "10px",
+                      right: "10px",
+                      background: "rgba(44, 26, 32, 0.88)",
+                      color: "var(--accent-gold-bright)",
+                      padding: "0.3rem 0.75rem",
+                      borderRadius: "20px",
+                      fontSize: "0.85rem",
+                      fontWeight: "800",
+                      backdropFilter: "blur(4px)"
+                    }}>
+                      {reward.pointsCost.toLocaleString()} pts
+                    </span>
+                  </div>
+
+                  {/* Cuerpo de la tarjeta */}
+                  <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1 }}>
+                    <div>
+                      <h3 style={{ fontSize: "1.1rem", margin: "0 0 0.5rem 0", lineHeight: "1.3" }}>
+                        {reward.name}
+                      </h3>
+                      {reward.description && (
+                        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 1rem 0", lineHeight: "1.4" }}>
+                          {reward.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      borderTop: "1px dashed var(--border-color)",
+                      paddingTop: "0.75rem",
+                      marginTop: "0.5rem"
+                    }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                        ID: <code style={{ color: "var(--primary-color)" }}>{reward.id}</code>
+                      </span>
+
+                      <div style={{ display: "flex", gap: "0.4rem" }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenEditRewardModal(reward)}
+                          style={{ padding: "0.35rem 0.65rem", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
+                          title="Editar Recompensa"
+                        >
+                          <Edit size={13} /> Editar
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteReward(reward.id, reward.name)}
+                          style={{ padding: "0.35rem 0.65rem", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem" }}
+                          title="Eliminar Recompensa"
+                        >
+                          <Trash2 size={13} /> Borrar
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+
+              {filteredRewards.length === 0 && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "4rem 1rem", color: "var(--text-muted)" }}>
+                  <Gift size={48} style={{ opacity: 0.3, marginBottom: "1rem" }} />
+                  <h3>No se encontraron recompensas</h3>
+                  <p>Crea tu primera recompensa o ajusta los filtros de búsqueda.</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        );
+      })()}
+
       {/* --- MODAL AGREGAR / EDITAR STAFF --- */}
       {showStaffModal && (
         <div className="modal-overlay" style={{ zIndex: 1000 }}>
@@ -1979,6 +2297,131 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
               <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "1rem" }}>
                 Aplicar Ajuste de Puntos
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL CREAR / EDITAR RECOMPENSA VIP --- */}
+      {showRewardModal && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" style={{ maxWidth: "500px", maxHeight: "90vh", overflowY: "auto" }}>
+            <button className="modal-close" onClick={() => setShowRewardModal(false)}>
+              <X size={20} />
+            </button>
+
+            <h2>{editingReward ? "Editar Recompensa VIP" : "Nueva Recompensa VIP"}</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+              Configura los detalles del premio y cuántos puntos necesitará el cliente para canjearlo.
+            </p>
+
+            <form onSubmit={handleSaveReward} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              
+              {/* Opción rápida: Vincular con producto de inventario */}
+              <div className="input-group">
+                <label className="input-label" style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <Package size={14} color="var(--accent-gold)" /> Vincular con Producto de Tienda (Opcional)
+                </label>
+                <select 
+                  className="input-field"
+                  value={selectedLinkedProductId}
+                  onChange={(e) => handleSelectLinkedProduct(e.target.value)}
+                >
+                  <option value="">-- Personalizado / Cupón de Descuento --</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} - ${p.price} MXN ({p.stock} en stock)
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                  Al elegir un producto se completará su nombre, imagen y sugerirá puntos equivalentes ($1 = 10 pts).
+                </span>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Nombre del Premio / Recompensa *</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={rewardFormName} 
+                  onChange={(e) => setRewardFormName(e.target.value)} 
+                  placeholder="Ej. Labial Matte Rose Gold o Cupón $100 MXN"
+                  required 
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="input-group">
+                  <label className="input-label">Categoría *</label>
+                  <select 
+                    className="input-field" 
+                    value={rewardFormCategory} 
+                    onChange={(e) => setRewardFormCategory(e.target.value)}
+                  >
+                    <option value="Productos">Productos</option>
+                    <option value="Cupones">Cupones</option>
+                    <option value="Descuentos">Descuentos</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Especial">Especial</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Puntos Requeridos *</label>
+                  <input 
+                    type="number" 
+                    className="input-field" 
+                    value={rewardFormPointsCost} 
+                    onChange={(e) => setRewardFormPointsCost(e.target.value)} 
+                    placeholder="Ej. 2500"
+                    required 
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Descripción o Condiciones del Premio</label>
+                <textarea 
+                  className="input-field" 
+                  rows="2"
+                  value={rewardFormDescription} 
+                  onChange={(e) => setRewardFormDescription(e.target.value)} 
+                  placeholder="Ej. Válido en sucursal física. Presentar código de cliente en caja al canjear."
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">URL de Imagen del Premio</label>
+                <input 
+                  type="url" 
+                  className="input-field" 
+                  value={rewardFormImage} 
+                  onChange={(e) => setRewardFormImage(e.target.value)} 
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowRewardModal(false)}
+                  style={{ flex: 1 }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                >
+                  <Save size={18} /> Guardar Recompensa
+                </button>
+              </div>
+
             </form>
           </div>
         </div>

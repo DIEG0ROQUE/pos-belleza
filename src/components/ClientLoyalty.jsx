@@ -5,6 +5,11 @@ import { db } from "../utils/db";
 
 export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) {
   const [rewards, setRewards] = useState(db.getRewards());
+
+  // Sincronizar catálogo de premios si se actualiza en la base de datos
+  React.useEffect(() => {
+    setRewards(db.getRewards());
+  }, []);
   
   // Generador de código de barras virtual mediante CSS (líneas de diferente grosor)
   // Utiliza el número de teléfono del cliente como semilla para el código
@@ -52,7 +57,7 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
         
         // Notificar al padre para refrescar la sesión del usuario actual
         onUpdateUser(updatedUser);
-        showToast(`¡Premio canjeado con éxito! Reclámalo en caja con tu código.`, "success");
+        showToast(`¡Premio canjeado con éxito! Reclámalo en caja con tu código o teléfono.`, "success");
       } catch (err) {
         showToast(err.message, "error");
       }
@@ -155,9 +160,10 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
             borderRadius: "20px",
             fontSize: "0.85rem",
             color: "var(--primary-color)",
-            fontWeight: "500"
+            fontWeight: "500",
+            textAlign: "center"
           }}>
-            Equivale a <strong>${currentUser.points}.00 MXN</strong> de descuento en tu próxima compra
+            🌸 <strong>Ganas 10 Puntos por cada $1 MXN de compra</strong>
           </div>
         </div>
       </div>
@@ -169,39 +175,76 @@ export default function ClientLoyalty({ currentUser, onUpdateUser, showToast }) 
           const isAffordable = currentUser.points >= reward.pointsCost;
           return (
             <div className="glass-panel" key={reward.id} style={{
-              padding: "1.5rem",
               borderRadius: "var(--radius-md)",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "space-between",
+              overflow: "hidden",
               border: isAffordable ? "1px solid rgba(49,29,32,0.15)" : "1px solid var(--border-color)",
-              opacity: isAffordable ? 1 : 0.8
+              opacity: isAffordable ? 1 : 0.85,
+              transition: "transform 0.2s ease"
             }}>
-              <div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  color: reward.category === "Descuentos" ? "#8a31b5" : "#3174b5",
-                  background: reward.category === "Descuentos" ? "#fbf2fc" : "#f2f7fc",
-                  padding: "0.2rem 0.5rem",
-                  borderRadius: "4px",
-                  fontWeight: "600"
-                }}>{reward.category}</span>
-                
-                <h3 style={{ fontSize: "1.15rem", margin: "0.5rem 0", lineHeight: "1.3" }}>{reward.name}</h3>
-              </div>
+              {/* Imagen del premio si existe */}
+              {reward.image && (
+                <div style={{ height: "150px", overflow: "hidden", position: "relative" }}>
+                  <img 
+                    src={reward.image} 
+                    alt={reward.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <span style={{
+                    position: "absolute",
+                    top: "10px",
+                    left: "10px",
+                    fontSize: "0.75rem",
+                    color: reward.category === "Descuentos" || reward.category === "Cupones" ? "#8a31b5" : "#3174b5",
+                    background: "rgba(255,255,255,0.92)",
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "20px",
+                    fontWeight: "700",
+                    boxShadow: "var(--shadow-sm)"
+                  }}>{reward.category}</span>
+                </div>
+              )}
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
-                <span style={{ fontWeight: "700", color: "var(--primary-color)", fontSize: "1.1rem" }}>
-                  {reward.pointsCost} <span style={{ fontSize: "0.85rem", fontWeight: "normal", color: "var(--text-muted)" }}>puntos</span>
-                </span>
+              <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1 }}>
+                <div>
+                  {!reward.image && (
+                    <span style={{
+                      fontSize: "0.75rem",
+                      color: reward.category === "Descuentos" || reward.category === "Cupones" ? "#8a31b5" : "#3174b5",
+                      background: reward.category === "Descuentos" || reward.category === "Cupones" ? "#fbf2fc" : "#f2f7fc",
+                      padding: "0.2rem 0.5rem",
+                      borderRadius: "4px",
+                      fontWeight: "600",
+                      display: "inline-block",
+                      marginBottom: "0.5rem"
+                    }}>{reward.category}</span>
+                  )}
+                  
+                  <h3 style={{ fontSize: "1.1rem", margin: "0.25rem 0 0.5rem 0", lineHeight: "1.3" }}>{reward.name}</h3>
+                  {reward.description && (
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 1rem 0" }}>
+                      {reward.description}
+                    </p>
+                  )}
+                </div>
 
-                <button
-                  onClick={() => handleRedeem(reward)}
-                  className={`btn btn-sm ${isAffordable ? "btn-primary" : "btn-disabled"}`}
-                  disabled={!isAffordable}
-                >
-                  <Gift size={14} /> Canjear
-                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem" }}>
+                  <div>
+                    <span style={{ fontWeight: "800", color: "var(--primary-color)", fontSize: "1.2rem", display: "block" }}>
+                      {reward.pointsCost} <span style={{ fontSize: "0.8rem", fontWeight: "normal", color: "var(--text-muted)" }}>pts</span>
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleRedeem(reward)}
+                    className={`btn btn-sm ${isAffordable ? "btn-primary" : "btn-disabled"}`}
+                    disabled={!isAffordable}
+                    style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
+                  >
+                    <Gift size={14} /> Canjear
+                  </button>
+                </div>
               </div>
             </div>
           );

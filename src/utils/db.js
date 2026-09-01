@@ -162,11 +162,11 @@ const SEED_USERS = [
     email: "sofia@email.com",
     password: "sofia123",
     role: "cliente",
-    points: 320,
+    points: 3200,
     pointHistory: [
-      { date: "2026-08-05", description: "Compra Tienda Centro", points: +120 },
-      { date: "2026-08-09", description: "Compra Online", points: +300 },
-      { date: "2026-08-10", description: "Canje: Labial Matte", points: -100 }
+      { date: "2026-08-05", description: "Compra Tienda Centro", points: +1200 },
+      { date: "2026-08-09", description: "Compra Online", points: +3000 },
+      { date: "2026-08-10", description: "Canje: Labial Matte", points: -1000 }
     ]
   },
   {
@@ -176,19 +176,62 @@ const SEED_USERS = [
     email: "alejandro@email.com",
     password: "ale123",
     role: "cliente",
-    points: 85,
+    points: 850,
     pointHistory: [
-      { date: "2026-08-11", description: "Compra de Apertura", points: +85 }
+      { date: "2026-08-11", description: "Compra de Apertura", points: +850 }
     ]
   }
 ];
 
 const SEED_REWARDS = [
-  { id: "rew-1", name: "Cupón $50 MXN de Descuento", pointsCost: 100, category: "Descuentos" },
-  { id: "rew-2", name: "Rímel Máscara de Pestañas 4D", pointsCost: 200, category: "Productos" },
-  { id: "rew-3", name: "Labial Matte Rose Gold", pointsCost: 300, category: "Productos" },
-  { id: "rew-4", name: "Sérum Facial Ácido Hialurónico", pointsCost: 400, category: "Productos" },
-  { id: "rew-5", name: "Cupón $250 MXN de Descuento", pointsCost: 450, category: "Descuentos" }
+  { 
+    id: "rew-1", 
+    name: "Cupón $50 MXN de Descuento", 
+    pointsCost: 500, 
+    category: "Cupones",
+    description: "Válido en cualquier compra mínima de $200 MXN en tienda física o en línea.",
+    image: "https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=500&q=80"
+  },
+  { 
+    id: "rew-2", 
+    name: "Rímel Máscara de Pestañas 4D", 
+    pointsCost: 1890, 
+    category: "Productos",
+    description: "Efecto alargador y volumen resistente al agua. Tono negro intenso.",
+    image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=500&q=80"
+  },
+  { 
+    id: "rew-3", 
+    name: "Labial Matte Rose Gold", 
+    pointsCost: 2990, 
+    category: "Productos",
+    description: "Color de larga duración enriquecido con vitamina E y aceites naturales.",
+    image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500&q=80"
+  },
+  { 
+    id: "rew-4", 
+    name: "Sérum Facial Ácido Hialurónico", 
+    pointsCost: 3800, 
+    category: "Productos",
+    description: "Hidratación profunda antiedad y luminosidad para todo tipo de piel.",
+    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80"
+  },
+  { 
+    id: "rew-5", 
+    name: "Cupón $250 MXN de Descuento", 
+    pointsCost: 2500, 
+    category: "Cupones",
+    description: "Descuento directo en tu ticket de compra para miembros VIP.",
+    image: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=500&q=80"
+  },
+  { 
+    id: "rew-6", 
+    name: "Paleta de Sombras Golden Sunset", 
+    pointsCost: 6800, 
+    category: "Productos",
+    description: "18 tonos cálidos, mates y satinados de altísima pigmentación.",
+    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"
+  }
 ];
 
 const SEED_SALES = [
@@ -207,7 +250,7 @@ const SEED_SALES = [
     discount: 0,
     total: 978,
     paymentMethod: "Tarjeta",
-    pointsEarned: 100,
+    pointsEarned: 9780,
     pointsUsed: 0
   },
   {
@@ -314,10 +357,44 @@ const initStorage = () => {
   }
   if (!localStorage.getItem("pos_users")) {
     localStorage.setItem("pos_users", JSON.stringify(SEED_USERS));
+  } else {
+    try {
+      let users = JSON.parse(localStorage.getItem("pos_users"));
+      if (Array.isArray(users)) {
+        let updated = false;
+        users = users.map(u => {
+          if (u.role === "cliente" && u.points !== undefined && u.points > 0 && u.points < 500) {
+            u.points = u.points * 10;
+            if (u.pointHistory && Array.isArray(u.pointHistory)) {
+              u.pointHistory = u.pointHistory.map(h => ({ ...h, points: h.points * 10 }));
+            }
+            updated = true;
+          }
+          return u;
+        });
+        if (updated) {
+          localStorage.setItem("pos_users", JSON.stringify(users));
+        }
+      }
+    } catch (e) {
+      console.error("Error al actualizar escala de puntos de usuarios:", e);
+    }
   }
+
   if (!localStorage.getItem("pos_rewards")) {
     localStorage.setItem("pos_rewards", JSON.stringify(SEED_REWARDS));
+  } else {
+    try {
+      const existingRewards = JSON.parse(localStorage.getItem("pos_rewards"));
+      // Si el catálogo existente tiene los costos viejos (<500 pts) o está incompleto, migrar al nuevo catálogo
+      if (!Array.isArray(existingRewards) || existingRewards.length === 0 || (existingRewards[0] && existingRewards[0].pointsCost < 500)) {
+        localStorage.setItem("pos_rewards", JSON.stringify(SEED_REWARDS));
+      }
+    } catch (e) {
+      localStorage.setItem("pos_rewards", JSON.stringify(SEED_REWARDS));
+    }
   }
+
   if (!localStorage.getItem("pos_sales")) {
     localStorage.setItem("pos_sales", JSON.stringify(SEED_SALES));
   }
@@ -444,10 +521,10 @@ export const db = {
       role: userData.role || "cliente",
       points: 0,
       pointHistory: [
-        { date: new Date().toISOString().split("T")[0], description: "Registro y bienvenida", points: 20 }
+        { date: new Date().toISOString().split("T")[0], description: "Registro y bienvenida", points: 200 }
       ]
     };
-    newUser.points = 20; // 20 puntos de bienvenida
+    newUser.points = 200; // 200 puntos de bienvenida
     users.push(newUser);
     db.saveUsers(users);
     return newUser;
@@ -626,6 +703,48 @@ export const db = {
       localStorage.setItem("pos_rewards", JSON.stringify(SEED_REWARDS));
       return SEED_REWARDS;
     }
+  },
+
+  saveRewards: (rewards) => {
+    try {
+      localStorage.setItem("pos_rewards", JSON.stringify(rewards));
+    } catch (e) {
+      console.error("Error al guardar pos_rewards", e);
+    }
+  },
+
+  addReward: (rewardData) => {
+    const rewards = db.getRewards();
+    const newReward = {
+      ...rewardData,
+      id: `rew-${Date.now()}`,
+      pointsCost: parseInt(rewardData.pointsCost) || 1000
+    };
+    rewards.push(newReward);
+    db.saveRewards(rewards);
+    return newReward;
+  },
+
+  updateReward: (updatedReward) => {
+    const rewards = db.getRewards();
+    const index = rewards.findIndex(r => r.id === updatedReward.id);
+    if (index !== -1) {
+      rewards[index] = {
+        ...rewards[index],
+        ...updatedReward,
+        pointsCost: parseInt(updatedReward.pointsCost) || rewards[index].pointsCost
+      };
+      db.saveRewards(rewards);
+      return rewards[index];
+    }
+    throw new Error("Recompensa no encontrada.");
+  },
+
+  deleteReward: (id) => {
+    const rewards = db.getRewards();
+    const filtered = rewards.filter(r => r.id !== id);
+    db.saveRewards(filtered);
+    return true;
   },
 
   redeemReward: (userId, rewardId) => {
