@@ -93,8 +93,19 @@ export default function App() {
     <div className="app-container">
       {/* Header Premium Nav */}
       <header className="header">
-        <div className="logo" style={{ cursor: "pointer" }} onClick={() => setCurrentView("store")}>
-          <div className="logo-icon" style={{ fontFamily: "'Playfair Display', serif", fontWeight: "bold" }}>ZB</div>
+        <div className="logo" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.75rem" }} onClick={() => setCurrentView("store")}>
+          <img 
+            src="/favicon.jpg" 
+            alt="Zabalegui Logo" 
+            style={{ 
+              width: "42px", 
+              height: "42px", 
+              borderRadius: "8px", 
+              objectFit: "cover", 
+              boxShadow: "var(--shadow-sm)",
+              border: "1px solid rgba(255,255,255,0.2)"
+            }} 
+          />
           <span className="brand-font" style={{ fontSize: "1.6rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>
             Zabalegui
           </span>
