@@ -816,23 +816,48 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
     <div style={{ padding: "2rem 1.5rem", maxWidth: "1200px", margin: "0 auto" }}>
       
       {/* Encabezado */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
         <div>
           <h1 style={{ margin: 0 }}>Panel Gerencial Zabalegui</h1>
           <p style={{ color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Análisis de ventas, inventario crítico e historial de tickets.</p>
         </div>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          background: "white",
-          padding: "0.5rem 1rem",
-          borderRadius: "12px",
-          border: "1px solid var(--border-color)",
-          fontSize: "0.9rem",
-          fontWeight: "500"
-        }}>
-          <Calendar size={16} color="var(--accent-gold)" /> Hoy: {new Date().toLocaleDateString()}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          {/* Botón de Sincronización MySQL */}
+          <button 
+            onClick={async () => {
+              if (showToast) showToast("Comprobando conexión MySQL con Hostinger...", "info");
+              try {
+                const res = await fetch("/api/test.php").then(r => r.json());
+                if (res.connected) {
+                  await db.api.syncAll();
+                  if (onRefreshProducts) onRefreshProducts();
+                  if (showToast) showToast(`🟢 Conexión MySQL Exitosa: ${res.products_count} productos en BD`, "success");
+                } else {
+                  if (showToast) showToast(`🔴 Error MySQL: ${res.error || "No se pudo conectar"}`, "error");
+                }
+              } catch (e) {
+                if (showToast) showToast("⚠️ Revisa que la carpeta /api/ esté subida en Hostinger", "error");
+              }
+            }}
+            className="btn btn-secondary btn-sm"
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem", borderRadius: "12px", padding: "0.5rem 0.9rem", fontWeight: "600" }}
+          >
+            <RefreshCw size={15} /> Probar / Sincronizar MySQL
+          </button>
+
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            background: "white",
+            padding: "0.5rem 1rem",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color)",
+            fontSize: "0.9rem",
+            fontWeight: "500"
+          }}>
+            <Calendar size={16} color="var(--accent-gold)" /> Hoy: {new Date().toLocaleDateString()}
+          </div>
         </div>
       </div>
 
