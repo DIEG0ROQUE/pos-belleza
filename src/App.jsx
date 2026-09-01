@@ -71,10 +71,16 @@ export default function App() {
   };
 
   const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-    if (user.role === "gerente") {
+    // Normalizar rol
+    const r = (user.role || "").toLowerCase();
+    const normalizedUser = {
+      ...user,
+      role: (r === "admin" || r === "administrador" || r === "gerente" || r === "dueño") ? "gerente" : (r === "cajero" ? "cajero" : "cliente")
+    };
+    setCurrentUser(normalizedUser);
+    if (normalizedUser.role === "gerente") {
       setCurrentView("dashboard");
-    } else if (user.role === "cajero") {
+    } else if (normalizedUser.role === "cajero") {
       setCurrentView("pos");
     } else {
       setCurrentView("loyalty");
@@ -84,6 +90,8 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentView("store");
+    sessionStorage.removeItem("pos_session_user");
+    sessionStorage.removeItem("pos_session_view");
     localStorage.removeItem("pos_current_user");
     localStorage.removeItem("pos_current_view");
     showToast("Sesión cerrada correctamente.", "success");
@@ -93,6 +101,11 @@ export default function App() {
   const handleUpdateUser = (updatedUser) => {
     setCurrentUser(updatedUser);
   };
+
+  const userRole = (currentUser?.role || "").toLowerCase();
+  const isManager = userRole === "gerente" || userRole === "admin" || userRole === "administrador" || userRole === "dueño";
+  const isCashier = userRole === "cajero" || isManager;
+  const isClient = userRole === "cliente" || (!isManager && !isCashier && currentUser !== null);
 
   return (
     <div className="app-container">
@@ -135,7 +148,7 @@ export default function App() {
             </button>
           )}
 
-          {currentUser && currentUser.role === "cliente" && (
+          {currentUser && isClient && (
             <button 
               className={`nav-link ${currentView === "loyalty" ? "active" : ""}`}
               onClick={() => setCurrentView("loyalty")}
@@ -144,7 +157,7 @@ export default function App() {
             </button>
           )}
 
-          {currentUser && (currentUser.role === "cajero" || currentUser.role === "gerente") && (
+          {currentUser && isCashier && (
             <button 
               className={`nav-link ${currentView === "pos" ? "active" : ""}`}
               onClick={() => setCurrentView("pos")}
@@ -153,7 +166,7 @@ export default function App() {
             </button>
           )}
 
-          {currentUser && (currentUser.role === "cajero" || currentUser.role === "gerente") && (
+          {currentUser && isCashier && (
             <button 
               className={`nav-link ${currentView === "inventory" ? "active" : ""}`}
               onClick={() => setCurrentView("inventory")}
@@ -162,7 +175,7 @@ export default function App() {
             </button>
           )}
 
-          {currentUser && currentUser.role === "gerente" && (
+          {currentUser && isManager && (
             <button 
               className={`nav-link ${currentView === "dashboard" ? "active" : ""}`}
               onClick={() => setCurrentView("dashboard")}
@@ -171,7 +184,7 @@ export default function App() {
             </button>
           )}
 
-          {currentUser && currentUser.role === "gerente" && (
+          {currentUser && isManager && (
             <button 
               className={`nav-link ${currentView === "finances" ? "active" : ""}`}
               onClick={() => setCurrentView("finances")}
@@ -195,7 +208,7 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, minHeight: "80vh" }}>
         {currentView === "store" && (
           <PublicStore 
             currentUser={currentUser} 
@@ -210,7 +223,7 @@ export default function App() {
           <Auth onLoginSuccess={handleLoginSuccess} showToast={showToast} />
         )}
         
-        {currentView === "pos" && currentUser && (
+        {currentView === "pos" && (
           <POS 
             currentUser={currentUser} 
             products={products} 
@@ -219,7 +232,7 @@ export default function App() {
           />
         )}
         
-        {currentView === "inventory" && currentUser && (
+        {currentView === "inventory" && (
           <Inventory 
             currentUser={currentUser} 
             products={products} 
@@ -228,7 +241,7 @@ export default function App() {
           />
         )}
         
-        {currentView === "dashboard" && currentUser && currentUser.role === "gerente" && (
+        {currentView === "dashboard" && (
           <Dashboard 
             currentUser={currentUser}
             onUpdateCurrentUser={handleUpdateUser}
@@ -238,7 +251,7 @@ export default function App() {
           />
         )}
         
-        {currentView === "finances" && currentUser && currentUser.role === "gerente" && (
+        {currentView === "finances" && (
           <Finances 
             currentUser={currentUser} 
             products={products} 
@@ -246,7 +259,7 @@ export default function App() {
           />
         )}
         
-        {currentView === "loyalty" && currentUser && currentUser.role === "cliente" && (
+        {currentView === "loyalty" && (
           <ClientLoyalty 
             currentUser={currentUser} 
             onUpdateUser={handleUpdateUser} 
