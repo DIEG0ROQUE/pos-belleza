@@ -20,17 +20,20 @@ export default function Auth({ onLoginSuccess, showToast }) {
   const handleLogin = (e) => {
     e.preventDefault();
     const users = db.getUsers();
+    const query = loginEmail.trim().toLowerCase();
     
-    // Buscar usuario por correo y contraseña
+    // Buscar usuario por correo o teléfono y contraseña
     const user = users.find(
-      (u) => u.email.toLowerCase() === loginEmail.toLowerCase() && u.password === loginPassword
+      (u) => 
+        (u.email?.toLowerCase() === query || u.phone === query) && 
+        u.password === loginPassword
     );
 
     if (user) {
       onLoginSuccess(user);
-      showToast(`¡Bienvenido de nuevo, ${user.name}!`, "success");
+      showToast(`¡Bienvenido, ${user.name}!`, "success");
     } else {
-      showToast("Correo electrónico o contraseña incorrectos.", "error");
+      showToast("Credenciales incorrectas. Verifica tu correo/celular y contraseña.", "error");
     }
   };
 
@@ -55,25 +58,10 @@ export default function Auth({ onLoginSuccess, showToast }) {
         role: "cliente" // Registro público siempre es de cliente
       });
       onLoginSuccess(newUser);
-      showToast("¡Registro exitoso! Te regalamos 20 puntos de bienvenida.", "success");
+      showToast("¡Registro exitoso! Te regalamos 200 puntos de bienvenida.", "success");
     } catch (err) {
       showToast(err.message, "error");
     }
-  };
-
-  // Autocompletar cuentas de demo rápida para simplificar pruebas
-  const fillDemoAccount = (role) => {
-    if (role === "gerente") {
-      setLoginEmail("gerente@belleza.com");
-      setLoginPassword("admin123");
-    } else if (role === "cajero") {
-      setLoginEmail("cajero@belleza.com");
-      setLoginPassword("caja123");
-    } else {
-      setLoginEmail("sofia@email.com");
-      setLoginPassword("sofia123");
-    }
-    showToast(`Datos demo cargados para: ${role.toUpperCase()}`, "success");
   };
 
   return (
@@ -86,7 +74,7 @@ export default function Auth({ onLoginSuccess, showToast }) {
     }}>
       <div className="glass-panel" style={{
         width: "100%",
-        maxWidth: "480px",
+        maxWidth: "460px",
         padding: "2.5rem",
         borderRadius: "var(--radius-lg)",
         boxShadow: "var(--shadow-lg)"
@@ -129,26 +117,28 @@ export default function Auth({ onLoginSuccess, showToast }) {
               transition: "var(--transition-fast)"
             }}
           >
-            Registrarse (Cliente)
+            Crear Cuenta VIP
           </button>
         </div>
 
         {!isRegister ? (
           /* LOGIN FORM */
           <form onSubmit={handleLogin}>
-            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-              <h2 style={{ marginBottom: "0.25rem" }}>Ingresar al Sistema</h2>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Accede a tu cuenta de cliente o perfil del staff</p>
+            <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
+              <h2 style={{ marginBottom: "0.25rem", fontSize: "1.4rem" }}>Iniciar Sesión</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
+                Acceso para Administrador, Cajeros y Clientes VIP
+              </p>
             </div>
 
             <div className="input-group">
-              <label className="input-label">Correo Electrónico</label>
+              <label className="input-label">Correo Electrónico o Celular</label>
               <div style={{ position: "relative" }}>
                 <Mail size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input
-                  type="email"
+                  type="text"
                   className="input-field"
-                  placeholder="ejemplo@correo.com"
+                  placeholder="ejemplo@correo.com o 10 dígitos"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   style={{ paddingLeft: "40px", width: "100%", boxSizing: "border-box" }}
@@ -157,7 +147,7 @@ export default function Auth({ onLoginSuccess, showToast }) {
               </div>
             </div>
 
-            <div className="input-group" style={{ marginBottom: "1.5rem" }}>
+            <div className="input-group" style={{ marginBottom: "1.75rem" }}>
               <label className="input-label">Contraseña</label>
               <div style={{ position: "relative" }}>
                 <Lock size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
@@ -173,33 +163,9 @@ export default function Auth({ onLoginSuccess, showToast }) {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem" }}>
-              <LogIn size={18} /> Iniciar Sesión
+            <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "0.9rem", fontSize: "1rem" }}>
+              <LogIn size={18} /> Entrar
             </button>
-
-            {/* Demostración / Rápido Acceso Staff */}
-            <div style={{
-              marginTop: "2rem",
-              padding: "1rem",
-              borderRadius: "var(--radius-md)",
-              background: "rgba(197, 155, 142, 0.08)",
-              border: "1px dashed var(--accent-gold)"
-            }}>
-              <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.85rem", fontWeight: "600", color: "var(--primary-color)", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                <ShieldAlert size={14} /> Accesos rápidos de Demostración:
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                <button type="button" onClick={() => fillDemoAccount("gerente")} className="btn btn-secondary btn-sm" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}>
-                  🔑 Gerente
-                </button>
-                <button type="button" onClick={() => fillDemoAccount("cajero")} className="btn btn-secondary btn-sm" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}>
-                  🔑 Cajero
-                </button>
-                <button type="button" onClick={() => fillDemoAccount("cliente")} className="btn btn-secondary btn-sm" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}>
-                  🔑 Cliente Premium
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           /* REGISTER FORM */

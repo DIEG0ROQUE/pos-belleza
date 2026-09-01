@@ -171,11 +171,11 @@ CREATE TABLE IF NOT EXISTS `suppliers` (
 
 -- Usuarios de prueba
 INSERT INTO `users` (`id`, `name`, `phone`, `email`, `password`, `role`, `points`) VALUES
-('u-1', 'Diana Laura (Gerente)', '5551112222', 'admin@belleza.com', 'admin123', 'gerente', 0),
-('u-2', 'Carlos Rosas (Cajero)', '5553334444', 'cajero@belleza.com', 'caja123', 'cajero', 0),
+('u-1', 'Administrador (Gerente)', '5551112222', 'admin@zabalegui.com', 'Zabalegui@2026', 'gerente', 0),
+('u-2', 'Caja Principal (Cajero)', '5553334444', 'cajero@belleza.com', 'Cajero@2026', 'cajero', 0),
 ('u-3', 'Sofia Perez (Cliente Premium)', '5551234567', 'sofia@email.com', 'sofia123', 'cliente', 3200),
 ('u-4', 'Alejandro Gomez (Cliente)', '5557654321', 'alejandro@email.com', 'ale123', 'cliente', 850)
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+ON DUPLICATE KEY UPDATE `email`=VALUES(`email`), `password`=VALUES(`password`), `name`=VALUES(`name`);
 
 -- Historial de puntos inicial
 INSERT INTO `user_point_history` (`user_id`, `date`, `description`, `points`) VALUES

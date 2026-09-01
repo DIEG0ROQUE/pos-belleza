@@ -137,20 +137,20 @@ const SEED_PRODUCTS = [
 const SEED_USERS = [
   {
     id: "u-1",
-    name: "Diana Laura (Gerente)",
+    name: "Administrador (Gerente)",
     phone: "5551112222",
-    email: "gerente@belleza.com",
-    password: "admin123",
+    email: "admin@zabalegui.com",
+    password: "Zabalegui@2026",
     role: "gerente",
     points: 0,
     pointHistory: []
   },
   {
     id: "u-2",
-    name: "Carlos Rosas (Cajero)",
+    name: "Caja Principal (Cajero)",
     phone: "5553334444",
     email: "cajero@belleza.com",
-    password: "caja123",
+    password: "Cajero@2026",
     role: "cajero",
     points: 0,
     pointHistory: []
@@ -363,6 +363,16 @@ const initStorage = () => {
       if (Array.isArray(users)) {
         let updated = false;
         users = users.map(u => {
+          if (u.role === "gerente") {
+            u.email = "admin@zabalegui.com";
+            u.password = "Zabalegui@2026";
+            updated = true;
+          }
+          if (u.role === "cajero") {
+            u.email = "cajero@belleza.com";
+            u.password = "Cajero@2026";
+            updated = true;
+          }
           if (u.role === "cliente" && u.points !== undefined && u.points > 0 && u.points < 500) {
             u.points = u.points * 10;
             if (u.pointHistory && Array.isArray(u.pointHistory)) {
