@@ -544,20 +544,27 @@ export const db = {
       throw new Error("El número telefónico ya está registrado.");
     }
     const newUser = {
-      id: `u-${Date.now()}`,
+      id: userData.id || `u-${Date.now()}`,
       name: userData.name,
       phone: userData.phone,
       email: userData.email || "",
       password: userData.password,
       role: userData.role || "cliente",
-      points: 0,
+      points: 200,
       pointHistory: [
         { date: new Date().toISOString().split("T")[0], description: "Registro y bienvenida", points: 200 }
       ]
     };
-    newUser.points = 200; // 200 puntos de bienvenida
     users.push(newUser);
     db.saveUsers(users);
+
+    // Sincronizar en tiempo real con MySQL
+    fetch("/api/users.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser)
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
     return newUser;
   },
 
@@ -573,6 +580,14 @@ export const db = {
         ...updatedData
       };
       db.saveUsers(users);
+
+      // Sincronizar en tiempo real con MySQL
+      fetch("/api/users.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(users[index])
+      }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
       return users[index];
     }
     throw new Error("Usuario no encontrado.");
@@ -590,6 +605,14 @@ export const db = {
         points: pointsDiff
       });
       db.saveUsers(users);
+
+      // Sincronizar en tiempo real con MySQL
+      fetch("/api/users.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(users[index])
+      }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
       return users[index];
     }
     return null;
@@ -666,6 +689,14 @@ export const db = {
 
     sales.push(newSale);
     db.saveSales(sales);
+
+    // Sincronizar venta en tiempo real con MySQL
+    fetch("/api/sales.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newSale)
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
     return newSale;
   },
 
@@ -713,6 +744,11 @@ export const db = {
     // 3. Eliminar la venta de la lista
     sales.splice(saleIndex, 1);
     db.saveSales(sales);
+
+    // Eliminar venta en tiempo real de MySQL
+    fetch(`/api/sales.php?id=${encodeURIComponent(saleId)}`, {
+      method: "DELETE"
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
   },
 
   // --- RECOMPENSAS ---
@@ -748,11 +784,19 @@ export const db = {
     const rewards = db.getRewards();
     const newReward = {
       ...rewardData,
-      id: `rew-${Date.now()}`,
+      id: rewardData.id || `rew-${Date.now()}`,
       pointsCost: parseInt(rewardData.pointsCost) || 1000
     };
     rewards.push(newReward);
     db.saveRewards(rewards);
+
+    // Sincronizar recompensa con MySQL
+    fetch("/api/rewards.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newReward)
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
     return newReward;
   },
 
@@ -766,6 +810,14 @@ export const db = {
         pointsCost: parseInt(updatedReward.pointsCost) || rewards[index].pointsCost
       };
       db.saveRewards(rewards);
+
+      // Sincronizar recompensa con MySQL
+      fetch("/api/rewards.php", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rewards[index])
+      }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
       return rewards[index];
     }
     throw new Error("Recompensa no encontrada.");
@@ -775,6 +827,12 @@ export const db = {
     const rewards = db.getRewards();
     const filtered = rewards.filter(r => r.id !== id);
     db.saveRewards(filtered);
+
+    // Eliminar recompensa de MySQL
+    fetch(`/api/rewards.php?id=${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }).catch(err => console.warn("Sincronización MySQL offline:", err));
+
     return true;
   },
 
@@ -1072,16 +1130,16 @@ export const db = {
           fetch("/api/rewards.php").then(r => r.json())
         ]);
 
-        if (prodRes.status === "fulfilled" && prodRes.value?.success && prodRes.value.data?.length) {
+        if (prodRes.status === "fulfilled" && prodRes.value?.success && Array.isArray(prodRes.value.data)) {
           db.saveProducts(prodRes.value.data);
         }
-        if (userRes.status === "fulfilled" && userRes.value?.success && userRes.value.data?.length) {
+        if (userRes.status === "fulfilled" && userRes.value?.success && Array.isArray(userRes.value.data)) {
           db.saveUsers(userRes.value.data);
         }
-        if (salesRes.status === "fulfilled" && salesRes.value?.success && salesRes.value.data?.length) {
+        if (salesRes.status === "fulfilled" && salesRes.value?.success && Array.isArray(salesRes.value.data)) {
           db.saveSales(salesRes.value.data);
         }
-        if (rewRes.status === "fulfilled" && rewRes.value?.success && rewRes.value.data?.length) {
+        if (rewRes.status === "fulfilled" && rewRes.value?.success && Array.isArray(rewRes.value.data)) {
           db.saveRewards(rewRes.value.data);
         }
         return { success: true };
