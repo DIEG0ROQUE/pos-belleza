@@ -7,10 +7,23 @@ import {
 } from "lucide-react";
 import { db } from "../utils/db";
 
-export default function Dashboard({ currentUser, onUpdateCurrentUser, products, onRefreshProducts, showToast }) {
-  const sales = db.getSales();
-  const users = db.getUsers();
-  const clients = users.filter(u => u.role === "cliente");
+export default function Dashboard({ currentUser = {}, onUpdateCurrentUser, products = [], onRefreshProducts, showToast }) {
+  const rawSales = db.getSales() || [];
+  const sales = Array.isArray(rawSales) ? rawSales.map(s => ({
+    ...s,
+    id: s.id || `sale-${Math.random()}`,
+    customerName: s.customerName || "Público General",
+    cashierName: s.cashierName || "Caja",
+    items: Array.isArray(s.items) ? s.items : (typeof s.items === "string" ? JSON.parse(s.items || "[]") : []),
+    date: typeof s.date === "string" ? s.date : new Date().toISOString().replace("T", " ").slice(0, 19),
+    total: typeof s.total === "number" ? s.total : parseFloat(s.total || 0),
+    discount: typeof s.discount === "number" ? s.discount : parseFloat(s.discount || 0),
+    paymentMethod: s.paymentMethod || "Efectivo"
+  })) : [];
+
+  const rawUsers = db.getUsers() || [];
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  const clients = users.filter(u => u && u.role === "cliente");
 
   // Pestaña activa: "metrics", "transactions", "shifts", "clients", "staff", "rewards"
   const [activeTab, setActiveTab] = useState("metrics");
@@ -28,7 +41,7 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const [showPointsModal, setShowPointsModal] = useState(false);
 
   // --- Estados de Gestión de Recompensas VIP ---
-  const [rewardsList, setRewardsList] = useState(db.getRewards());
+  const [rewardsList, setRewardsList] = useState(db.getRewards() || []);
   const [rewardSearch, setRewardSearch] = useState("");
   const [rewardCategoryFilter, setRewardCategoryFilter] = useState("Todos");
   const [showRewardModal, setShowRewardModal] = useState(false);
@@ -45,11 +58,9 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
 
   useEffect(() => {
     if (selectedReceipt) {
-      const usersList = db.getUsers();
-      const client = usersList.find(u => u.id === selectedReceipt.customerId && u.role === "cliente");
+      const usersList = db.getUsers() || [];
+      const client = usersList.find(u => u && u.id === selectedReceipt.customerId && u.role === "cliente");
       setWhatsappShareNumber(client ? client.phone : "");
-    } else {
-      setWhatsappShareNumber("");
     }
   }, [selectedReceipt]);
 
@@ -78,35 +89,41 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   }, [currentUser]);
 
   // --- 1. KPI Cálculos ---
-  const totalSalesRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const totalSalesRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
   
   // Calcular Ganancia Neta
   const totalNetProfit = sales.reduce((sum, sale) => {
-    const saleProfit = sale.items.reduce((itemSum, item) => {
-      const originalProduct = products.find(p => p.id === item.id);
-      const productCost = originalProduct ? originalProduct.cost : item.price * 0.4;
-      const margin = item.price - productCost;
-      return itemSum + (margin * item.quantity);
+    const saleItems = Array.isArray(sale.items) ? sale.items : [];
+    const saleProfit = saleItems.reduce((itemSum, item) => {
+      const originalProduct = (products || []).find(p => p && p.id === item.id);
+      const productCost = originalProduct ? originalProduct.cost : (item.price || 0) * 0.4;
+      const margin = (item.price || 0) - productCost;
+      return itemSum + (margin * (item.quantity || 1));
     }, 0);
     return sum + (saleProfit - (sale.discount || 0));
   }, 0);
 
   const totalTransactions = sales.length;
   const registeredClientsCount = clients.length;
-  const lowStockProducts = products.filter(p => p.stock <= p.minStock);
+  const lowStockProducts = (products || []).filter(p => p && (p.stock || 0) <= (p.minStock || 3));
 
   // --- 2. Productos más/menos vendidos ---
   const productSalesMap = {};
-  products.forEach(p => {
-    productSalesMap[p.id] = { name: p.name, qty: 0, category: p.category };
+  (products || []).forEach(p => {
+    if (p && p.id) {
+      productSalesMap[p.id] = { name: p.name || "Producto", qty: 0, category: p.category || "General" };
+    }
   });
 
   sales.forEach(sale => {
-    sale.items.forEach(item => {
-      if (productSalesMap[item.id]) {
-        productSalesMap[item.id].qty += item.quantity;
-      } else {
-        productSalesMap[item.id] = { name: item.name, qty: item.quantity, category: "Borrado" };
+    const items = Array.isArray(sale.items) ? sale.items : [];
+    items.forEach(item => {
+      if (item && item.id) {
+        if (productSalesMap[item.id]) {
+          productSalesMap[item.id].qty += (item.quantity || 1);
+        } else {
+          productSalesMap[item.id] = { name: item.name || "Producto", qty: (item.quantity || 1), category: "Otros" };
+        }
       }
     });
   });
@@ -114,7 +131,7 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const productSalesList = Object.values(productSalesMap);
   const bestSellers = [...productSalesList].sort((a, b) => b.qty - a.qty).slice(0, 3);
   const worstSellers = [...productSalesList].filter(p => p.category !== "Borrado").sort((a, b) => a.qty - b.qty).slice(0, 3);
-  const topLoyalClients = [...clients].sort((a, b) => b.points - a.points).slice(0, 4);
+  const topLoyalClients = [...clients].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 4);
 
   // --- 3. Datos del Gráfico SVG (Últimos 7 días) ---
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -124,11 +141,11 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   }).reverse();
 
   const dailySales = last7Days.map(dateStr => {
-    const daySales = sales.filter(s => s.date.startsWith(dateStr));
-    const revenue = daySales.reduce((sum, s) => sum + s.total, 0);
+    const daySales = sales.filter(s => s.date && s.date.startsWith(dateStr));
+    const revenue = daySales.reduce((sum, s) => sum + (s.total || 0), 0);
     return {
       date: dateStr,
-      label: new Date(dateStr).toLocaleDateString("es-MX", { weekday: "short", day: "numeric" }),
+      label: new Date(dateStr + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric" }),
       value: revenue
     };
   });
@@ -139,35 +156,37 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   const padding = 40;
 
   const svgPoints = dailySales.map((d, index) => {
-    const x = padding + (index * (chartWidth - 2 * padding) / (dailySales.length - 1));
+    const x = padding + (index * (chartWidth - 2 * padding) / Math.max(1, dailySales.length - 1));
     const y = chartHeight - padding - (d.value * (chartHeight - 2 * padding) / maxSaleValue);
     return `${x},${y}`;
   }).join(" ");
 
   // --- 4. Filtrado del Historial de Transacciones ---
   const filteredSales = sales.filter(s => {
-    const matchesSearch = 
-      s.id.toLowerCase().includes(txSearch.toLowerCase()) || 
-      (s.customerName && s.customerName.toLowerCase().includes(txSearch.toLowerCase())) || 
-      (s.cashierName && s.cashierName.toLowerCase().includes(txSearch.toLowerCase()));
+    const sId = (s.id || "").toLowerCase();
+    const sCust = (s.customerName || "").toLowerCase();
+    const sCash = (s.cashierName || "").toLowerCase();
+    const sSearch = (txSearch || "").toLowerCase();
+
+    const matchesSearch = sId.includes(sSearch) || sCust.includes(sSearch) || sCash.includes(sSearch);
 
     const todayStr = new Date().toISOString().split("T")[0];
     const thisMonthStr = todayStr.substring(0, 7);
 
     let matchesDate = true;
     if (txFilter === "hoy") {
-      matchesDate = s.date.startsWith(todayStr);
+      matchesDate = s.date && s.date.startsWith(todayStr);
     } else if (txFilter === "mes") {
-      matchesDate = s.date.startsWith(thisMonthStr);
+      matchesDate = s.date && s.date.startsWith(thisMonthStr);
     }
 
     return matchesSearch && matchesDate;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   // Agrupado por Día
   const salesByDay = {};
   filteredSales.forEach(s => {
-    const day = s.date.split(" ")[0];
+    const day = (s.date || "").split(" ")[0] || "Hoy";
     if (!salesByDay[day]) salesByDay[day] = [];
     salesByDay[day].push(s);
   });
@@ -175,7 +194,7 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
   // Agrupado por Mes
   const salesByMonth = {};
   filteredSales.forEach(s => {
-    const month = s.date.split("-").slice(0, 2).join("-");
+    const month = (s.date || "").split("-").slice(0, 2).join("-") || "Este Mes";
     if (!salesByMonth[month]) salesByMonth[month] = [];
     salesByMonth[month].push(s);
   });

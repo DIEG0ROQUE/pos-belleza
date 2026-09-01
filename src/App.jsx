@@ -184,7 +184,7 @@ export default function App() {
           {currentUser && (
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <span className="desktop-only-text" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                Hola, <strong>{currentUser.name.split(" ")[0]}</strong>
+                Hola, <strong>{currentUser.name ? currentUser.name.split(" ")[0] : "Usuario"}</strong>
               </span>
               <button className="nav-button logout-btn" onClick={handleLogout}>
                 <LogOut size={16} /> Salir
