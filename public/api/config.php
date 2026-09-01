@@ -18,9 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Ajusta estos valores con los datos de tu base de datos en Hostinger:
 // ----------------------------------------------------------
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'u123456789_pos_belleza'); // Nombre de tu base de datos en Hostinger
-define('DB_USER', 'u123456789_admin');       // Usuario de tu base de datos en Hostinger
-define('DB_PASS', 'TuPasswordSegura123!');   // Contraseña de tu base de datos en Hostinger
+define('DB_NAME', 'u874152925_pos_belleza'); // Tu base de datos creada en Hostinger
+define('DB_USER', 'u874152925_ssh');         // Tu usuario creado en Hostinger
+define('DB_PASS', 'TU_CONTRASENA_AQUI');     // Pon aquí la contraseña que ingresaste al crear la BD en Hostinger
 
 function getDBConnection() {
     try {
