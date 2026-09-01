@@ -732,6 +732,44 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
     }
   };
 
+  const handleRewardFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          setRewardFormImage(dataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Helper para renderizar una fila de venta en la lista
   const renderSaleRow = (sale) => (
     <tr key={sale.id} style={{ borderBottom: "1px solid #f0ebe9" }}>
@@ -2393,15 +2431,35 @@ export default function Dashboard({ currentUser, onUpdateCurrentUser, products, 
                 />
               </div>
 
-              <div className="input-group">
-                <label className="input-label">URL de Imagen del Premio</label>
-                <input 
-                  type="url" 
-                  className="input-field" 
-                  value={rewardFormImage} 
-                  onChange={(e) => setRewardFormImage(e.target.value)} 
-                  placeholder="https://..."
-                />
+              <div className="input-group" style={{ marginBottom: "1rem" }}>
+                <label className="input-label">Foto / Imagen de la Recompensa</label>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                  {rewardFormImage && (
+                    <img 
+                      src={rewardFormImage} 
+                      alt="Preview" 
+                      style={{ 
+                        width: "55px", 
+                        height: "55px", 
+                        objectFit: "cover", 
+                        borderRadius: "8px", 
+                        border: "1px solid var(--border-color)",
+                        boxShadow: "var(--shadow-sm)" 
+                      }} 
+                    />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleRewardFileChange} 
+                      style={{ fontSize: "0.85rem" }}
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                      Sube una foto desde tu lap o cel (se optimizará y comprimirá automáticamente)
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
