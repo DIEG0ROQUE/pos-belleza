@@ -1747,138 +1747,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-100",
-    "name": "Anillo entrelazado tipo Chanel",
-    "category": "Anillos",
-    "barcode": "7501100",
-    "price": 170,
-    "cost": 105,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 17,
-    "pointsCost": 1700,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-101",
-    "name": "Anillo entrelazado cuadrado",
-    "category": "Anillos",
-    "barcode": "7501101",
-    "price": 170,
-    "cost": 105,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 17,
-    "pointsCost": 1700,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-102",
-    "name": "Aretes estrella color salmón",
-    "category": "Aretes",
-    "barcode": "7501102",
-    "price": 150,
-    "cost": 68,
-    "stock": 2,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-103",
-    "name": "Aretes de flor rosa perla blanca",
-    "category": "Aretes",
-    "barcode": "7501103",
-    "price": 150,
-    "cost": 68,
-    "stock": 2,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-104",
-    "name": "Aretes de cisne perla rosa",
-    "category": "Aretes",
-    "barcode": "7501104",
-    "price": 150,
-    "cost": 68,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-105",
-    "name": "Aretes morado rosa y amarillo",
-    "category": "Aretes",
-    "barcode": "7501105",
-    "price": 150,
-    "cost": 68,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-106",
-    "name": "Aretes colibrí perla negra",
-    "category": "Aretes",
-    "barcode": "7501106",
-    "price": 150,
-    "cost": 68,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-107",
-    "name": "Aretes colibrí perla rosa",
-    "category": "Aretes",
-    "barcode": "7501107",
-    "price": 150,
-    "cost": 68,
-    "stock": 1,
-    "minStock": 1,
-    "pointsReward": 15,
-    "pointsCost": 1500,
-    "image": "",
-    "isSpaceRental": false,
-    "isTrending": false,
-    "isPromo": false
-  },
-  {
-    "id": "prod-zb-108",
+    "id": "prod-c-1",
     "name": "Collar transparente corazón",
     "category": "Collares",
-    "barcode": "7501108",
+    "barcode": "C-1",
     "price": 140,
     "cost": 98,
     "stock": 1,
@@ -1891,10 +1763,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-109",
+    "id": "prod-c-2",
     "name": "Collar transparente ovalado",
     "category": "Collares",
-    "barcode": "7501109",
+    "barcode": "C-2",
     "price": 140,
     "cost": 98,
     "stock": 1,
@@ -1907,10 +1779,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-110",
+    "id": "prod-c-3",
     "name": "Corbatín dorado mariposa colores",
     "category": "Collares",
-    "barcode": "7501110",
+    "barcode": "C-3",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -1923,10 +1795,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-111",
+    "id": "prod-c-4",
     "name": "Corbatín plateado mariposa piedra blanca",
     "category": "Collares",
-    "barcode": "7501111",
+    "barcode": "C-4",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -1939,10 +1811,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-112",
+    "id": "prod-c-5",
     "name": "Corbatín plateado flor piedra blanca",
     "category": "Collares",
-    "barcode": "7501112",
+    "barcode": "C-5",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -1955,10 +1827,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-113",
+    "id": "prod-c-6",
     "name": "Corbatín mariposa piedra negra y blanca",
     "category": "Collares",
-    "barcode": "7501113",
+    "barcode": "C-6",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -1971,10 +1843,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-114",
+    "id": "prod-c-7",
     "name": "Corbatín estrella dorada",
     "category": "Collares",
-    "barcode": "7501114",
+    "barcode": "C-7",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -1987,10 +1859,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-115",
+    "id": "prod-c-8",
     "name": "Corbatín flor dorada",
     "category": "Collares",
-    "barcode": "7501115",
+    "barcode": "C-8",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -2003,10 +1875,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-116",
+    "id": "prod-c-9",
     "name": "Corbatín moño dorado",
     "category": "Collares",
-    "barcode": "7501116",
+    "barcode": "C-9",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -2019,10 +1891,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-117",
+    "id": "prod-c-10",
     "name": "Corbatín corazón dorado piedra negra y blanca",
     "category": "Collares",
-    "barcode": "7501117",
+    "barcode": "C-10",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -2035,10 +1907,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-118",
+    "id": "prod-c-11",
     "name": "Corbatín plateado trébol rojo",
     "category": "Collares",
-    "barcode": "7501118",
+    "barcode": "C-11",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -2051,10 +1923,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-119",
+    "id": "prod-c-12",
     "name": "Corbatín flor de colores",
     "category": "Collares",
-    "barcode": "7501119",
+    "barcode": "C-12",
     "price": 190,
     "cost": 119,
     "stock": 1,
@@ -2067,10 +1939,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-120",
+    "id": "prod-con-1",
     "name": "Conjunto colibrí",
     "category": "Conjuntos",
-    "barcode": "7501120",
+    "barcode": "CON-1",
     "price": 260,
     "cost": 154,
     "stock": 1,
@@ -2083,10 +1955,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-121",
+    "id": "prod-con-2",
     "name": "Conjunto candado",
     "category": "Conjuntos",
-    "barcode": "7501121",
+    "barcode": "CON-2",
     "price": 260,
     "cost": 154,
     "stock": 1,
@@ -2099,10 +1971,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-122",
+    "id": "prod-con-3",
     "name": "Conjunto corazón",
     "category": "Conjuntos",
-    "barcode": "7501122",
+    "barcode": "CON-3",
     "price": 260,
     "cost": 154,
     "stock": 1,
@@ -2115,10 +1987,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-123",
+    "id": "prod-con-4",
     "name": "Conjunto tortuga",
     "category": "Conjuntos",
-    "barcode": "7501123",
+    "barcode": "CON-4",
     "price": 260,
     "cost": 154,
     "stock": 1,
@@ -2131,10 +2003,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-124",
+    "id": "prod-con-5",
     "name": "Conjunto búho",
     "category": "Conjuntos",
-    "barcode": "7501124",
+    "barcode": "CON-5",
     "price": 260,
     "cost": 154,
     "stock": 1,
@@ -2147,10 +2019,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-125",
+    "id": "prod-c-13",
     "name": "Collar ojito con rehilete",
     "category": "Collares",
-    "barcode": "7501125",
+    "barcode": "C-13",
     "price": 170,
     "cost": 105,
     "stock": 1,
@@ -2163,10 +2035,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-126",
+    "id": "prod-c-14",
     "name": "Collar ojito grande",
     "category": "Collares",
-    "barcode": "7501126",
+    "barcode": "C-14",
     "price": 170,
     "cost": 105,
     "stock": 1,
@@ -2179,10 +2051,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-127",
+    "id": "prod-c-15",
     "name": "Collar ojito azul",
     "category": "Collares",
-    "barcode": "7501127",
+    "barcode": "C-15",
     "price": 170,
     "cost": 105,
     "stock": 1,
@@ -2195,10 +2067,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-128",
+    "id": "prod-c-16",
     "name": "Collar ojito chiquito",
     "category": "Collares",
-    "barcode": "7501128",
+    "barcode": "C-16",
     "price": 170,
     "cost": 105,
     "stock": 1,
@@ -2211,10 +2083,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-129",
+    "id": "prod-p-1",
     "name": "Pulsera plateada con brillo",
     "category": "Pulseras",
-    "barcode": "7501129",
+    "barcode": "P-1",
     "price": 230,
     "cost": 161,
     "stock": 1,
@@ -2227,10 +2099,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-130",
+    "id": "prod-p-2",
     "name": "Pulsera tricolor metálica",
     "category": "Pulseras",
-    "barcode": "7501130",
+    "barcode": "P-2",
     "price": 230,
     "cost": 161,
     "stock": 1,
@@ -2243,10 +2115,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-131",
+    "id": "prod-a-1",
     "name": "Arracada tricolor grande",
     "category": "Aretes",
-    "barcode": "7501131",
+    "barcode": "A-1",
     "price": 180,
     "cost": 119,
     "stock": 1,
@@ -2259,10 +2131,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-132",
+    "id": "prod-a-2",
     "name": "Arracada tricolor grande espiral",
     "category": "Aretes",
-    "barcode": "7501132",
+    "barcode": "A-2",
     "price": 180,
     "cost": 119,
     "stock": 1,
@@ -2275,10 +2147,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-133",
+    "id": "prod-a-3",
     "name": "Arracada tricolor chica",
     "category": "Aretes",
-    "barcode": "7501133",
+    "barcode": "A-3",
     "price": 160,
     "cost": 105,
     "stock": 1,
@@ -2291,10 +2163,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-134",
+    "id": "prod-a-4",
     "name": "Arracada espiral",
     "category": "Aretes",
-    "barcode": "7501134",
+    "barcode": "A-4",
     "price": 160,
     "cost": 105,
     "stock": 1,
@@ -2307,10 +2179,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-135",
+    "id": "prod-a-5",
     "name": "Arracada dorada simple",
     "category": "Aretes",
-    "barcode": "7501135",
+    "barcode": "A-5",
     "price": 160,
     "cost": 105,
     "stock": 3,
@@ -2323,10 +2195,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-136",
+    "id": "prod-a-6",
     "name": "Arracada rombo",
     "category": "Aretes",
-    "barcode": "7501136",
+    "barcode": "A-6",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2339,10 +2211,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-137",
+    "id": "prod-a-7",
     "name": "Arracada oval",
     "category": "Aretes",
-    "barcode": "7501137",
+    "barcode": "A-7",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2355,10 +2227,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-138",
+    "id": "prod-a-8",
     "name": "Arete broche verde",
     "category": "Aretes",
-    "barcode": "7501138",
+    "barcode": "A-8",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2371,10 +2243,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-139",
+    "id": "prod-a-9",
     "name": "Arete broche amarillo",
     "category": "Aretes",
-    "barcode": "7501139",
+    "barcode": "A-9",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2387,10 +2259,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-140",
+    "id": "prod-a-10",
     "name": "Arete broche blanco",
     "category": "Aretes",
-    "barcode": "7501140",
+    "barcode": "A-10",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2403,10 +2275,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-141",
+    "id": "prod-a-11",
     "name": "Arete broche rosa",
     "category": "Aretes",
-    "barcode": "7501141",
+    "barcode": "A-11",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2419,10 +2291,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-142",
+    "id": "prod-a-12",
     "name": "Arete broche estrella",
     "category": "Aretes",
-    "barcode": "7501142",
+    "barcode": "A-12",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2435,10 +2307,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-143",
+    "id": "prod-a-13",
     "name": "Arete espiral",
     "category": "Aretes",
-    "barcode": "7501143",
+    "barcode": "A-13",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2451,10 +2323,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-144",
+    "id": "prod-a-14",
     "name": "Aretes flores cascada",
     "category": "Aretes",
-    "barcode": "7501144",
+    "barcode": "A-14",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2467,10 +2339,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-145",
+    "id": "prod-a-15",
     "name": "Arete mariposa BB",
     "category": "Aretes",
-    "barcode": "7501145",
+    "barcode": "A-15",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2483,10 +2355,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-146",
+    "id": "prod-a-16",
     "name": "Arete broche piedras verdes",
     "category": "Aretes",
-    "barcode": "7501146",
+    "barcode": "A-16",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2499,10 +2371,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-147",
+    "id": "prod-a-17",
     "name": "Arete flor rosa",
     "category": "Aretes",
-    "barcode": "7501147",
+    "barcode": "A-17",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2515,10 +2387,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-148",
+    "id": "prod-a-18",
     "name": "Arete broche óvalos blancos y verdes",
     "category": "Aretes",
-    "barcode": "7501148",
+    "barcode": "A-18",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2531,10 +2403,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-149",
+    "id": "prod-a-19",
     "name": "Arete mariposa morada con corazón",
     "category": "Aretes",
-    "barcode": "7501149",
+    "barcode": "A-19",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2547,10 +2419,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-150",
+    "id": "prod-a-20",
     "name": "Arete broche verde, rojo y azul",
     "category": "Aretes",
-    "barcode": "7501150",
+    "barcode": "A-20",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2563,10 +2435,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-151",
+    "id": "prod-a-21",
     "name": "Arete bola negra",
     "category": "Aretes",
-    "barcode": "7501151",
+    "barcode": "A-21",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2579,10 +2451,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-152",
+    "id": "prod-a-22",
     "name": "Arete tres piedras",
     "category": "Aretes",
-    "barcode": "7501152",
+    "barcode": "A-22",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2595,10 +2467,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-153",
+    "id": "prod-a-23",
     "name": "Arete flor dorada con lunita",
     "category": "Aretes",
-    "barcode": "7501153",
+    "barcode": "A-23",
     "price": 175,
     "cost": 98,
     "stock": 1,
@@ -2611,10 +2483,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-154",
+    "id": "prod-a-24",
     "name": "Aretes cuadrados con cascada brillitos",
     "category": "Aretes",
-    "barcode": "7501154",
+    "barcode": "A-24",
     "price": 180,
     "cost": 105,
     "stock": 1,
@@ -2627,10 +2499,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-155",
+    "id": "prod-a-25",
     "name": "Arete rectángulo de piedra blanca",
     "category": "Aretes",
-    "barcode": "7501155",
+    "barcode": "A-25",
     "price": 180,
     "cost": 105,
     "stock": 1,
@@ -2643,10 +2515,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-156",
+    "id": "prod-a-26",
     "name": "Arete piedra ovalada morada con brillitos",
     "category": "Aretes",
-    "barcode": "7501156",
+    "barcode": "A-26",
     "price": 180,
     "cost": 105,
     "stock": 1,
@@ -2659,10 +2531,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-157",
+    "id": "prod-a-27",
     "name": "Arete broche de piedra negra redonda",
     "category": "Aretes",
-    "barcode": "7501157",
+    "barcode": "A-27",
     "price": 180,
     "cost": 105,
     "stock": 1,
@@ -2675,10 +2547,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-158",
+    "id": "prod-a-28",
     "name": "Arete broche de gota café y verde",
     "category": "Aretes",
-    "barcode": "7501158",
+    "barcode": "A-28",
     "price": 180,
     "cost": 105,
     "stock": 1,
@@ -2691,10 +2563,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-159",
+    "id": "prod-a-29",
     "name": "Aretes cruz con piedras",
     "category": "Aretes",
-    "barcode": "7501159",
+    "barcode": "A-29",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2707,10 +2579,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-160",
+    "id": "prod-a-30",
     "name": "Arete de mariposa BB",
     "category": "Aretes",
-    "barcode": "7501160",
+    "barcode": "A-30",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2723,10 +2595,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-161",
+    "id": "prod-a-31",
     "name": "Aretes de círculo con piedra blanca",
     "category": "Aretes",
-    "barcode": "7501161",
+    "barcode": "A-31",
     "price": 160,
     "cost": 91,
     "stock": 1,
@@ -2739,10 +2611,10 @@ const SEED_PRODUCTS = [
     "isPromo": false
   },
   {
-    "id": "prod-zb-162",
+    "id": "prod-a-32",
     "name": "Arracadas largas",
     "category": "Aretes",
-    "barcode": "7501162",
+    "barcode": "A-32",
     "price": 175,
     "cost": 98,
     "stock": 1,
