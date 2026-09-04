@@ -34,7 +34,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [image, setImage] = useState("");
   const [isSpaceRental, setIsSpaceRental] = useState(false);
 
-  const categories = ["Maquillaje", "Belleza", "Ropa"];
+  const categories = Array.from(new Set(["Maquillaje", "Belleza", "Ropa", "Collares", "Cadenas", "Conjuntos", "Pulseras", "Aretes", "Anillos", ...(products || []).map(p => p.category).filter(Boolean)]));
 
   const generateUniqueBarcode = () => {
     let code = "";

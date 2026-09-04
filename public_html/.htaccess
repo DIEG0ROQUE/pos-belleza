@@ -1,0 +1,52 @@
+# ==========================================================
+# CONFIGURACIÓN APACHE PARA REACT SPA + PHP API EN HOSTINGER
+# ==========================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # No reescribir si la petición va dirigida a la carpeta /api/
+  RewriteRule ^api/ - [L]
+
+  # Si el archivo o carpeta existe físicamente, servirlo directamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Enviar todas las demás rutas a index.html (React SPA Routing)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# ----------------------------------------------------------
+# Compresión GZIP para máxima velocidad de carga
+# ----------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ----------------------------------------------------------
+# Control de Caché Inteligente (Cache Busting)
+# ----------------------------------------------------------
+<IfModule mod_headers.c>
+  # NUNCA guardar en caché index.html ni scripts PHP para que cualquier cambio se refleje al instante
+  <FilesMatch "\.(html|htm|php)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Los archivos empaquetados JS y CSS tienen hashes únicos automáticos (ej. index-BOYMyhgk.js)
+  # por lo que el navegador descargará automáticamente los nuevos al cambiar
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# ----------------------------------------------------------
+# Seguridad y Codificación UTF-8
+# ----------------------------------------------------------
+AddDefaultCharset UTF-8
+Options -Indexes
