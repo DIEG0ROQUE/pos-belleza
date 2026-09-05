@@ -1,13 +1,18 @@
 // Inventory.jsx - Control de Inventario y Entrada de Mercancía
-import React, { useState } from "react";
-import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X, Sparkles, FolderPlus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { db } from "../utils/db";
 
 export default function Inventory({ currentUser, products, onRefreshProducts, showToast }) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
+  const [brandFilter, setBrandFilter] = useState("Todas");
   
+  // Listas dinámicas
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [brandsList, setBrandsList] = useState([]);
+
   // Modales
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -16,6 +21,12 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [showStockEntryModal, setShowStockEntryModal] = useState(false);
   const [stockEntryProduct, setStockEntryProduct] = useState(null);
   const [stockAddAmount, setStockAddAmount] = useState("");
+
+  // Modales para Crear Nueva Categoría y Nueva Marca
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewBrandModal, setShowNewBrandModal] = useState(false);
+  const [newBrandName, setNewBrandName] = useState("");
 
   // Estado para la etiqueta que se está imprimiendo
   const [printingLabelProduct, setPrintingLabelProduct] = useState(null);
@@ -26,6 +37,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   // Campos de formulario para Producto
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Maquillaje");
+  const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
   const [stock, setStock] = useState("");
@@ -34,7 +46,15 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [image, setImage] = useState("");
   const [isSpaceRental, setIsSpaceRental] = useState(false);
 
-  const categories = Array.from(new Set(["Maquillaje", "Belleza", "Ropa", "Collares", "Cadenas", "Conjuntos", "Pulseras", "Aretes", "Anillos", ...(products || []).map(p => p.category).filter(Boolean)]));
+  // Cargar categorías y marcas al iniciar o cuando cambien los productos
+  useEffect(() => {
+    refreshCategoriesAndBrands();
+  }, [products]);
+
+  const refreshCategoriesAndBrands = () => {
+    setCategoriesList(db.getCategories());
+    setBrandsList(db.getBrands());
+  };
 
   const generateUniqueBarcode = () => {
     let code = "";
@@ -51,7 +71,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const openAddModal = () => {
     setEditingProduct(null);
     setName("");
-    setCategory("Maquillaje");
+    setCategory(categoriesList[0] || "Maquillaje");
+    setBrand("");
     setPrice("");
     setCost("");
     setStock("");
@@ -65,7 +86,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const openEditModal = (prod) => {
     setEditingProduct(prod);
     setName(prod.name);
-    setCategory(prod.category);
+    setCategory(prod.category || "Maquillaje");
+    setBrand(prod.brand || "");
     setPrice(prod.price.toString());
     setCost(prod.cost.toString());
     setStock(prod.stock.toString());
@@ -74,6 +96,38 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setImage(prod.image);
     setIsSpaceRental(prod.isSpaceRental || false);
     setShowProductModal(true);
+  };
+
+  // Crear categoría al vuelo
+  const handleCreateCategory = (e) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) {
+      showToast("Ingresa un nombre para la categoría.", "error");
+      return;
+    }
+    const clean = newCategoryName.trim();
+    const updated = db.addCategory(clean);
+    setCategoriesList(updated);
+    setCategory(clean); // Seleccionar de inmediato en el formulario
+    setNewCategoryName("");
+    setShowNewCategoryModal(false);
+    showToast(`Categoría "${clean}" creada con éxito.`, "success");
+  };
+
+  // Crear marca al vuelo
+  const handleCreateBrand = (e) => {
+    e.preventDefault();
+    if (!newBrandName.trim()) {
+      showToast("Ingresa un nombre para la marca.", "error");
+      return;
+    }
+    const clean = newBrandName.trim();
+    const updated = db.addBrand(clean);
+    setBrandsList(updated);
+    setBrand(clean); // Seleccionar de inmediato en el formulario
+    setNewBrandName("");
+    setShowNewBrandModal(false);
+    showToast(`Marca "${clean}" registrada con éxito.`, "success");
   };
 
   const handleFileChange = (e) => {
@@ -125,6 +179,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     const productData = {
       name,
       category,
+      brand: brand.trim(),
       price: parseFloat(price),
       cost: parseFloat(cost),
       stock: parseInt(stock),
@@ -162,14 +217,14 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   };
 
   const handleDeleteProduct = (id) => {
-    if (window.confirm("¿Está seguro de eliminar este producto del inventario?")) {
+    if (window.confirm("¿Seguro que deseas eliminar este producto del inventario?")) {
       db.deleteProduct(id);
       onRefreshProducts();
-      showToast("Producto eliminado del inventario.", "success");
+      showToast("Producto eliminado del inventario.", "info");
     }
   };
 
-  // Entrada rápida de mercancía
+  // Gestión de Entrada Rápida de Stock
   const openStockEntryModal = (prod) => {
     setStockEntryProduct(prod);
     setStockAddAmount("");
@@ -180,7 +235,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     e.preventDefault();
     const amount = parseInt(stockAddAmount);
     if (isNaN(amount) || amount <= 0) {
-      showToast("Ingrese una cantidad válida mayor a cero.", "error");
+      showToast("Ingrese una cantidad válida mayor a 0", "error");
       return;
     }
 
@@ -197,13 +252,19 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
   // Filtrado de productos en lista
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
+    const q = search.toLowerCase();
+    const matchesSearch = 
+      p.name.toLowerCase().includes(q) || 
+      p.barcode.includes(q) ||
+      (p.category && p.category.toLowerCase().includes(q)) ||
+      (p.brand && p.brand.toLowerCase().includes(q));
+    
     const matchesCategory = categoryFilter === "Todos" || p.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesBrand = brandFilter === "Todas" || (brandFilter === "Sin Marca" ? !p.brand : p.brand === brandFilter);
+    return matchesSearch && matchesCategory && matchesBrand;
   });
 
   const handleExportExcel = (targetProductsList = filteredProducts) => {
-    // Si pasamos un array de IDs, filtrar de la lista global de productos
     const productsToExport = Array.isArray(targetProductsList) && typeof targetProductsList[0] === "string"
       ? products.filter(p => targetProductsList.includes(p.id))
       : targetProductsList;
@@ -214,22 +275,21 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     }
 
     try {
-      // 1. Estructurar datos con encabezados claros que WePrint pueda mapear
       const data = productsToExport.map(p => ({
         "Codigo": p.barcode,
         "Nombre": p.name,
+        "Marca": p.brand || "Sin Marca",
+        "Categoria": p.category,
+        "Costo": `$${p.cost.toFixed(2)}`,
         "Precio": `$${p.price.toFixed(2)}`,
-        "Categoria": p.category
+        "Stock": p.stock
       }));
 
-      // 2. Crear hoja y libro
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
-
-      // 3. Escribir archivo binario de Excel
-      XLSX.writeFile(workbook, "productos_zabalegui_weprint.xlsx");
-      showToast(`Exportadas ${productsToExport.length} etiquetas a Excel con éxito.`, "success");
+      XLSX.writeFile(workbook, "inventario_zabalegui.xlsx");
+      showToast(`Exportadas ${productsToExport.length} filas a Excel con éxito.`, "success");
     } catch (err) {
       showToast("Error al exportar Excel: " + err.message, "error");
     }
@@ -237,7 +297,6 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
   const handlePrintDirectLabel = (product) => {
     setPrintingLabelProduct(product);
-    // Esperar a que el DOM monte el contenedor imprimible
     setTimeout(() => {
       document.body.classList.add("printing-label");
       window.print();
@@ -262,8 +321,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
           <p style={{ color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Registra mercancía, edita detalles de productos y monitorea existencias.</p>
         </div>
 
-        {/* Solo administradores o gerente pueden crear productos nuevos, cajero puede ingresar stock */}
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        {/* Botones de acción superior */}
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
           {selectedProductIds.length > 0 ? (
             <>
               <button 
@@ -284,9 +343,10 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
             </>
           ) : (
             <button className="btn btn-secondary" onClick={() => handleExportExcel(filteredProducts)} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <Download size={18} /> Exportar Vista Actual ({filteredProducts.length})
+              <Download size={18} /> Exportar Excel ({filteredProducts.length})
             </button>
           )}
+
           {currentUser.role === "gerente" && (
             <button className="btn btn-primary" onClick={openAddModal}>
               <Plus size={18} /> Nuevo Producto
@@ -297,40 +357,103 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
 
       {/* Controles de Filtro & Búsqueda */}
       <div className="glass-panel" style={{ padding: "1.25rem", marginBottom: "1.5rem" }}>
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
           <div style={{ position: "relative", flex: 1, minWidth: "260px" }}>
             <Search size={18} color="var(--accent-gold)" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
             <input
               type="text"
               className="input-field"
-              placeholder="Buscar por nombre o código de barras..."
+              placeholder="Buscar por nombre, código, categoría o marca..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ paddingLeft: "40px", width: "100%", boxSizing: "border-box" }}
             />
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            {["Todos", ...categories].map(cat => (
+          {/* Filtro por Marca */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Marca:</span>
+            <select
+              className="input-field"
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              style={{ minWidth: "150px", padding: "0.45rem 0.75rem", fontSize: "0.85rem" }}
+            >
+              <option value="Todas">Todas las marcas</option>
+              <option value="Sin Marca">Sin Marca</option>
+              {brandsList.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Barra de Filtro de Categorías con Scroll Horizontal Fluido */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.4rem" }}>
+          <button
+            onClick={() => setCategoryFilter("Todos")}
+            style={{
+              padding: "0.45rem 0.9rem",
+              borderRadius: "20px",
+              border: categoryFilter === "Todos" ? "none" : "1px solid var(--border-color)",
+              background: categoryFilter === "Todos" ? "var(--primary-color)" : "white",
+              color: categoryFilter === "Todos" ? "white" : "var(--text-dark)",
+              fontWeight: "600",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+              whiteSpace: "nowrap",
+              transition: "var(--transition-fast)"
+            }}
+          >
+            Todos ({products.length})
+          </button>
+
+          {categoriesList.map(cat => {
+            const count = products.filter(p => p.category === cat).length;
+            return (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
                 style={{
-                  padding: "0.5rem 1rem",
+                  padding: "0.45rem 0.9rem",
                   borderRadius: "20px",
                   border: categoryFilter === cat ? "none" : "1px solid var(--border-color)",
                   background: categoryFilter === cat ? "var(--primary-color)" : "white",
                   color: categoryFilter === cat ? "white" : "var(--text-dark)",
                   fontWeight: "600",
                   cursor: "pointer",
-                  fontSize: "0.9rem",
+                  fontSize: "0.85rem",
+                  whiteSpace: "nowrap",
                   transition: "var(--transition-fast)"
                 }}
               >
-                {cat}
+                {cat} {count > 0 ? `(${count})` : ""}
               </button>
-            ))}
-          </div>
+            );
+          })}
+
+          {currentUser.role === "gerente" && (
+            <button
+              onClick={() => { setNewCategoryName(""); setShowNewCategoryModal(true); }}
+              style={{
+                padding: "0.45rem 0.8rem",
+                borderRadius: "20px",
+                border: "1px dashed var(--primary-color)",
+                background: "rgba(197, 155, 142, 0.1)",
+                color: "var(--primary-color)",
+                fontWeight: "600",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.3rem"
+              }}
+              title="Agregar nueva categoría"
+            >
+              <Plus size={14} /> Nueva Categoría
+            </button>
+          )}
         </div>
       </div>
 
@@ -375,7 +498,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 />
               </th>
               <th style={{ padding: "1rem" }}>Imagen</th>
-              <th style={{ padding: "1rem" }}>Producto / Código</th>
+              <th style={{ padding: "1rem" }}>Producto / Marca</th>
               <th style={{ padding: "1rem" }}>Categoría</th>
               <th style={{ padding: "1rem" }}>Costo</th>
               <th style={{ padding: "1rem" }}>P. Venta</th>
@@ -417,11 +540,24 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                       />
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
-                      <img src={prod.image} alt={prod.name} style={{ width: "45px", height: "45px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e0d9d6" }} />
+                      <img src={prod.image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"} alt={prod.name} style={{ width: "45px", height: "45px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e0d9d6" }} />
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.2rem" }}>
                         <strong style={{ fontSize: "0.95rem" }}>{prod.name}</strong>
+                        {prod.brand && (
+                          <span style={{
+                            fontSize: "0.72rem",
+                            background: "rgba(49, 29, 32, 0.07)",
+                            color: "var(--text-dark)",
+                            padding: "0.1rem 0.45rem",
+                            borderRadius: "10px",
+                            fontWeight: "600",
+                            border: "1px solid rgba(49, 29, 32, 0.12)"
+                          }}>
+                            {prod.brand}
+                          </span>
+                        )}
                         {prod.isSpaceRental && (
                           <span style={{
                             fontSize: "0.7rem",
@@ -440,7 +576,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <span style={{
                         fontSize: "0.8rem",
-                        padding: "0.25rem 0.5rem",
+                        padding: "0.25rem 0.55rem",
                         borderRadius: "12px",
                         background: "rgba(197, 155, 142, 0.15)",
                         fontWeight: "600"
@@ -480,10 +616,10 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                             >
                               <Printer size={14} />
                             </button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(prod)} style={{ padding: "0.4rem" }}>
+                            <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(prod)} style={{ padding: "0.4rem" }} title="Editar Producto">
                               <Edit size={14} />
                             </button>
-                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteProduct(prod.id)} style={{ padding: "0.4rem" }}>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteProduct(prod.id)} style={{ padding: "0.4rem" }} title="Eliminar Producto">
                               <Trash2 size={14} />
                             </button>
                           </>
@@ -501,7 +637,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       {/* MODAL AGREGAR / EDITAR PRODUCTO */}
       {showProductModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ maxWidth: "600px" }}>
             <button className="modal-close" onClick={() => setShowProductModal(false)}>
               <Plus size={20} style={{ transform: "rotate(45deg)" }} />
             </button>
@@ -516,48 +652,81 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                   className="input-field"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej. Rímel pestañas 4D"
+                  placeholder="Ej. Lip Gloss Larga Duración"
                   required
                 />
               </div>
 
+              {/* Categoría y Marca con creación rápida al vuelo */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="input-group">
-                  <label className="input-label">Categoría *</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                    <label className="input-label" style={{ margin: 0 }}>Categoría *</label>
+                    <button 
+                      type="button" 
+                      onClick={() => { setNewCategoryName(""); setShowNewCategoryModal(true); }}
+                      style={{ background: "none", border: "none", color: "var(--primary-color)", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "2px" }}
+                    >
+                      <Plus size={12} /> Nueva
+                    </button>
+                  </div>
                   <select 
                     className="input-field"
                     value={category} 
                     onChange={(e) => setCategory(e.target.value)}
                   >
-                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {categoriesList.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label">Código de Barras *</label>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <input
-                      type="text"
-                      className="input-field"
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                      placeholder="Código de barras"
-                      style={{ flex: 1, minWidth: 0 }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setBarcode(generateUniqueBarcode())}
-                      style={{ padding: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}
-                      title="Generar Código Único"
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                    <label className="input-label" style={{ margin: 0 }}>Marca (Opcional)</label>
+                    <button 
+                      type="button" 
+                      onClick={() => { setNewBrandName(""); setShowNewBrandModal(true); }}
+                      style={{ background: "none", border: "none", color: "var(--primary-color)", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "2px" }}
                     >
-                      <RefreshCw size={16} />
+                      <Plus size={12} /> Nueva
                     </button>
                   </div>
+                  <select 
+                    className="input-field"
+                    value={brand} 
+                    onChange={(e) => setBrand(e.target.value)}
+                  >
+                    <option value="">Sin Marca (Genérico)</option>
+                    {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
                 </div>
               </div>
 
+              {/* Código de barras */}
+              <div className="input-group">
+                <label className="input-label">Código de Barras *</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    placeholder="Código de barras"
+                    style={{ flex: 1, minWidth: 0 }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setBarcode(generateUniqueBarcode())}
+                    style={{ padding: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    title="Generar Código Único"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Costo y Precio */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="input-group">
                   <label className="input-label">Costo Adquisición *</label>
@@ -586,6 +755,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 </div>
               </div>
 
+              {/* Stock Inicial y Stock Mínimo */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="input-group">
                   <label className="input-label">Stock Inicial *</label>
@@ -626,6 +796,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 </label>
               </div>
 
+              {/* Imagen del Producto */}
               <div className="input-group" style={{ marginBottom: "1.5rem" }}>
                 <label className="input-label">Imagen del Producto</label>
                 <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -661,6 +832,82 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                   style={{ flex: 1.5, padding: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
                 >
                   <Printer size={16} /> Guardar e Imprimir
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CREAR NUEVA CATEGORÍA */}
+      {showNewCategoryModal && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" style={{ maxWidth: "380px" }}>
+            <button className="modal-close" onClick={() => setShowNewCategoryModal(false)}>
+              <Plus size={20} style={{ transform: "rotate(45deg)" }} />
+            </button>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <FolderPlus size={20} color="var(--primary-color)" /> Nueva Categoría
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1rem" }}>
+              Escribe el nombre de la nueva categoría para tu catálogo.
+            </p>
+            <form onSubmit={handleCreateCategory}>
+              <div className="input-group" style={{ marginBottom: "1.25rem" }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej. Cuidado Facial, Perfumes, etc."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowNewCategoryModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CREAR NUEVA MARCA */}
+      {showNewBrandModal && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" style={{ maxWidth: "380px" }}>
+            <button className="modal-close" onClick={() => setShowNewBrandModal(false)}>
+              <Plus size={20} style={{ transform: "rotate(45deg)" }} />
+            </button>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Sparkles size={20} color="var(--primary-color)" /> Registrar Marca
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1rem" }}>
+              Escribe el nombre de la marca que deseas añadir a tu lista.
+            </p>
+            <form onSubmit={handleCreateBrand}>
+              <div className="input-group" style={{ marginBottom: "1.25rem" }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej. L'Oréal, Maybelline, etc."
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowNewBrandModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  Guardar Marca
                 </button>
               </div>
             </form>
@@ -705,7 +952,8 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
           </div>
         </div>
       )}
-      {/* Elemento imprimible para la etiqueta térmica (oculto en pantalla normal, visible en impresión) */}
+
+      {/* Elemento imprimible para la etiqueta térmica */}
       {printingLabelProduct && (
         <div className="label-print-area" style={{ display: "none" }}>
           <div style={{ fontSize: "7.5pt", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "2px" }}>ZABALEGUI</div>

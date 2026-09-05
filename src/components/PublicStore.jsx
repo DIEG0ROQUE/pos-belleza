@@ -5,7 +5,7 @@ import { db } from "../utils/db";
 
 export default function PublicStore({ currentUser, products, onRefreshProducts, onNavigate, showToast }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const categories = ["Todos", "Maquillaje", "Belleza", "Ropa"];
+  const categories = ["Todos", ...db.getCategories()];
 
   const filteredProducts = selectedCategory === "Todos"
     ? products
@@ -321,7 +321,14 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                 )}
               </div>
               <div className="product-info">
-                <span className="product-cat">{product.category}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+                  <span className="product-cat" style={{ margin: 0 }}>{product.category}</span>
+                  {product.brand && (
+                    <span style={{ fontSize: "0.72rem", background: "rgba(49, 29, 32, 0.08)", color: "var(--text-dark)", padding: "0.1rem 0.4rem", borderRadius: "8px", fontWeight: "600" }}>
+                      {product.brand}
+                    </span>
+                  )}
+                </div>
                 <h4 className="product-name">{product.name}</h4>
                 <div className="product-price-row">
                   <span className="product-price">${product.price.toFixed(2)} MXN</span>
@@ -350,7 +357,7 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
             </div>
             
             {/* Filtros de Categorías */}
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", maxWidth: "100%", paddingBottom: "0.5rem" }}>
               {categories.map(cat => (
                 <button
                   key={cat}
@@ -363,6 +370,7 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                     color: selectedCategory === cat ? "white" : "var(--text-dark)",
                     fontWeight: "600",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                     transition: "var(--transition-fast)"
                   }}
                 >
@@ -536,9 +544,9 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                     value={editCategory} 
                     onChange={(e) => setEditCategory(e.target.value)}
                   >
-                    <option value="Maquillaje">Maquillaje</option>
-                    <option value="Belleza">Belleza</option>
-                    <option value="Ropa">Ropa</option>
+                    {db.getCategories().map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
 

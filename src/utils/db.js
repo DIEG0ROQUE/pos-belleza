@@ -1,6 +1,34 @@
 // db.js - Base de Datos Simulada en LocalStorage para el Punto de Venta y Fidelización
 // Contiene datos de semilla realistas (productos de belleza, ropa, maquillaje) y funciones helper.
 
+
+export const DEFAULT_CATEGORIES = [
+  "Anillos",
+  "Aretes",
+  "Belleza",
+  "Brazaletes",
+  "Cadenas",
+  "Collares",
+  "Conjuntos",
+  "Maquillaje",
+  "Pulseras",
+  "Ropa"
+];
+
+export const DEFAULT_BRANDS = [
+  "SINLESS BEAUTY",
+  "pink UP",
+  "ULTRAMO",
+  "ITALIA DELUXE",
+  "by apple",
+  "SANIYE",
+  "PROSA",
+  "ANANDA",
+  "AND",
+  "BISSU",
+  "Zabalegui"
+];
+
 const SEED_PRODUCTS = [
   {
     "id": "prod-1",
@@ -3761,6 +3789,40 @@ const initStorage = () => {
       console.error("Error al migrar campos de tendencias:", e);
     }
   }
+    if (!localStorage.getItem("pos_categories")) {
+    localStorage.setItem("pos_categories", JSON.stringify(DEFAULT_CATEGORIES));
+  }
+  if (!localStorage.getItem("pos_brands")) {
+    localStorage.setItem("pos_brands", JSON.stringify(DEFAULT_BRANDS));
+  }
+
+  // Migración: Asegurar campo brand en productos
+  try {
+    const data = localStorage.getItem("pos_products");
+    let prods = JSON.parse(data || "[]");
+    if (Array.isArray(prods)) {
+      let mod = false;
+      prods = prods.map(p => {
+        if (p.brand === undefined) {
+          // Inferir marca si está en el nombre
+          let inferredBrand = "";
+          for (const b of DEFAULT_BRANDS) {
+            if (p.name.toLowerCase().includes(b.toLowerCase())) {
+              inferredBrand = b;
+              break;
+            }
+          }
+          p.brand = inferredBrand;
+          mod = true;
+        }
+        return p;
+      });
+      if (mod) localStorage.setItem("pos_products", JSON.stringify(prods));
+    }
+  } catch (e) {
+    console.error("Error al migrar campo brand:", e);
+  }
+
   if (!localStorage.getItem("pos_users")) {
     localStorage.setItem("pos_users", JSON.stringify(SEED_USERS));
   } else {
@@ -3860,7 +3922,8 @@ export const db = {
       cost: parseFloat(product.cost) || 0,
       minStock: parseInt(product.minStock) || 3,
       pointsReward: parseInt(product.pointsReward) || Math.round(product.price * 0.1),
-      pointsCost: parseInt(product.pointsCost) || Math.round(product.price * 10)
+      pointsCost: parseInt(product.pointsCost) || Math.round(product.price * 10),
+      brand: product.brand ? product.brand.trim() : ""
     };
     products.push(newProduct);
     db.saveProducts(products);
@@ -3887,7 +3950,8 @@ export const db = {
         cost: parseFloat(updatedProduct.cost) || 0,
         minStock: parseInt(updatedProduct.minStock) || 3,
         pointsReward: parseInt(updatedProduct.pointsReward) || Math.round(updatedProduct.price * 0.1),
-        pointsCost: parseInt(updatedProduct.pointsCost) || Math.round(updatedProduct.price * 10)
+        pointsCost: parseInt(updatedProduct.pointsCost) || Math.round(updatedProduct.price * 10),
+        brand: updatedProduct.brand !== undefined ? (updatedProduct.brand ? updatedProduct.brand.trim() : "") : (products[index].brand || "")
       };
       db.saveProducts(products);
 
@@ -3912,6 +3976,97 @@ export const db = {
     fetch(`/api/products.php?id=${encodeURIComponent(id)}`, {
       method: "DELETE"
     }).catch(err => console.warn("Sincronización MySQL offline:", err));
+  },
+
+  
+  // --- CATEGORÍAS ---
+  getCategories: () => {
+    try {
+      let stored = JSON.parse(localStorage.getItem("pos_categories") || "[]");
+      if (!Array.isArray(stored) || stored.length === 0) {
+        stored = DEFAULT_CATEGORIES;
+        localStorage.setItem("pos_categories", JSON.stringify(stored));
+      }
+      const products = db.getProducts();
+      const productCategories = products.map(p => p.category).filter(Boolean);
+      const combined = Array.from(new Set([...DEFAULT_CATEGORIES, ...stored, ...productCategories]))
+        .filter(c => typeof c === "string" && c.trim().length > 0)
+        .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+      return combined;
+    } catch (e) {
+      console.error("Error al obtener categorías:", e);
+      return DEFAULT_CATEGORIES;
+    }
+  },
+
+  addCategory: (categoryName) => {
+    if (!categoryName || typeof categoryName !== "string") return db.getCategories();
+    const cleanName = categoryName.trim();
+    if (!cleanName) return db.getCategories();
+    const current = db.getCategories();
+    if (!current.some(c => c.toLowerCase() === cleanName.toLowerCase())) {
+      const updated = [...current, cleanName].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+      localStorage.setItem("pos_categories", JSON.stringify(updated));
+      return updated;
+    }
+    return current;
+  },
+
+  deleteCategory: (categoryName) => {
+    try {
+      const current = db.getCategories();
+      const updated = current.filter(c => c.toLowerCase() !== categoryName.toLowerCase());
+      localStorage.setItem("pos_categories", JSON.stringify(updated));
+      return updated;
+    } catch (e) {
+      console.error("Error al eliminar categoría:", e);
+      return db.getCategories();
+    }
+  },
+
+  // --- MARCAS ---
+  getBrands: () => {
+    try {
+      let stored = JSON.parse(localStorage.getItem("pos_brands") || "[]");
+      if (!Array.isArray(stored) || stored.length === 0) {
+        stored = DEFAULT_BRANDS;
+        localStorage.setItem("pos_brands", JSON.stringify(stored));
+      }
+      const products = db.getProducts();
+      const productBrands = products.map(p => p.brand).filter(b => b && typeof b === "string" && b.trim().length > 0);
+      const combined = Array.from(new Set([...DEFAULT_BRANDS, ...stored, ...productBrands]))
+        .filter(b => typeof b === "string" && b.trim().length > 0)
+        .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+      return combined;
+    } catch (e) {
+      console.error("Error al obtener marcas:", e);
+      return DEFAULT_BRANDS;
+    }
+  },
+
+  addBrand: (brandName) => {
+    if (!brandName || typeof brandName !== "string") return db.getBrands();
+    const cleanName = brandName.trim();
+    if (!cleanName) return db.getBrands();
+    const current = db.getBrands();
+    if (!current.some(b => b.toLowerCase() === cleanName.toLowerCase())) {
+      const updated = [...current, cleanName].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+      localStorage.setItem("pos_brands", JSON.stringify(updated));
+      return updated;
+    }
+    return current;
+  },
+
+  deleteBrand: (brandName) => {
+    try {
+      const current = db.getBrands();
+      const updated = current.filter(b => b.toLowerCase() !== brandName.toLowerCase());
+      localStorage.setItem("pos_brands", JSON.stringify(updated));
+      return updated;
+    } catch (e) {
+      console.error("Error al eliminar marca:", e);
+      return db.getBrands();
+    }
   },
 
   // --- USUARIOS ---

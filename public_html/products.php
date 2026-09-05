@@ -4,6 +4,13 @@ require_once 'config.php';
 $pdo = getDBConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Intentar agregar la columna brand automáticamente si aún no existe
+try {
+    $pdo->exec("ALTER TABLE products ADD COLUMN brand VARCHAR(100) NULL DEFAULT ''");
+} catch (Exception $e) {
+    // Si ya existe la columna, ignora el error
+}
+
 try {
     switch ($method) {
         case 'GET':
@@ -18,6 +25,7 @@ try {
                 $p['minStock'] = (int)$p['minStock'];
                 $p['pointsReward'] = (int)$p['pointsReward'];
                 $p['pointsCost'] = (int)$p['pointsCost'];
+                $p['brand'] = (string)($p['brand'] ?? '');
                 $p['isSpaceRental'] = (bool)$p['isSpaceRental'];
                 $p['isTrending'] = (bool)$p['isTrending'];
                 $p['isPromo'] = (bool)$p['isPromo'];
@@ -32,11 +40,12 @@ try {
             // Si es un array de productos (sincronización masiva)
             if (isset($data['products']) && is_array($data['products'])) {
                 $stmt = $pdo->prepare("
-                    INSERT INTO products (id, name, category, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
-                    VALUES (:id, :name, :category, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
+                    INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
+                    VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
                     ON DUPLICATE KEY UPDATE
                         name = VALUES(name),
                         category = VALUES(category),
+                        brand = VALUES(brand),
                         price = VALUES(price),
                         cost = VALUES(cost),
                         stock = VALUES(stock),
@@ -55,6 +64,7 @@ try {
                         ':id' => $p['id'] ?? ('prod-' . uniqid()),
                         ':name' => $p['name'],
                         ':category' => $p['category'] ?? 'General',
+                        ':brand' => $p['brand'] ?? '',
                         ':barcode' => $p['barcode'],
                         ':price' => $p['price'] ?? 0,
                         ':cost' => $p['cost'] ?? 0,
@@ -76,13 +86,14 @@ try {
             // Producto individual
             $id = $data['id'] ?? ('prod-' . uniqid());
             $stmt = $pdo->prepare("
-                INSERT INTO products (id, name, category, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
-                VALUES (:id, :name, :category, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
+                INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
+                VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
             ");
             $stmt->execute([
                 ':id' => $id,
                 ':name' => $data['name'],
                 ':category' => $data['category'] ?? 'General',
+                ':brand' => $data['brand'] ?? '',
                 ':barcode' => $data['barcode'],
                 ':price' => $data['price'] ?? 0,
                 ':cost' => $data['cost'] ?? 0,
@@ -111,6 +122,7 @@ try {
                 UPDATE products SET
                     name = :name,
                     category = :category,
+                    brand = :brand,
                     barcode = :barcode,
                     price = :price,
                     cost = :cost,
@@ -128,6 +140,7 @@ try {
                 ':id' => $data['id'],
                 ':name' => $data['name'],
                 ':category' => $data['category'] ?? 'General',
+                ':brand' => $data['brand'] ?? '',
                 ':barcode' => $data['barcode'],
                 ':price' => $data['price'] ?? 0,
                 ':cost' => $data['cost'] ?? 0,

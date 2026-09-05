@@ -447,18 +447,21 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     showToast("Abriendo WhatsApp...", "success");
   };
 
-  // Buscar productos manualmente por nombre o código de barras
+  // Buscar productos manualmente por nombre, marca, categoría o código de barras
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSearchResults([]);
       return;
     }
 
+    const q = searchQuery.toLowerCase();
     const filtered = products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.barcode.includes(searchQuery)
+      p.name.toLowerCase().includes(q) || 
+      p.barcode.includes(q) ||
+      (p.category && p.category.toLowerCase().includes(q)) ||
+      (p.brand && p.brand.toLowerCase().includes(q))
     );
-    setSearchResults(filtered.slice(0, 5));
+    setSearchResults(filtered.slice(0, 8));
   }, [searchQuery, products]);
 
   // Captura global de teclado para escáner físico de pistola en fase de captura (sin escribir en pantalla)
@@ -957,7 +960,7 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                   ref={searchInputRef}
                   type="text"
                   className="input-field"
-                  placeholder="Buscar por Nombre de producto o Código de barras..."
+                  placeholder="Buscar por Nombre, Marca, Categoría o Código de barras..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -995,8 +998,15 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
                       >
                         <div>
-                          <strong style={{ display: "block", fontSize: "0.95rem" }}>{prod.name}</strong>
-                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Cod: {prod.barcode} • Stock: {prod.stock}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                            <strong style={{ fontSize: "0.95rem" }}>{prod.name}</strong>
+                            {prod.brand && (
+                              <span style={{ fontSize: "0.7rem", background: "rgba(49, 29, 32, 0.08)", padding: "0.1rem 0.4rem", borderRadius: "8px", fontWeight: "600" }}>
+                                {prod.brand}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{prod.category} • Cod: {prod.barcode} • Stock: {prod.stock}</span>
                         </div>
                         <span style={{ fontWeight: "600", color: "var(--primary-color)" }}>${prod.price.toFixed(2)} MXN</span>
                       </div>
