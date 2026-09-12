@@ -3904,6 +3904,25 @@ export const db = {
     }
   },
 
+  
+  // Obtener precio efectivo con descuento aplicado si existe
+  getEffectivePrice: (product) => {
+    if (!product) return 0;
+    const basePrice = parseFloat(product.price) || 0;
+    if (!product.hasDiscount || !product.discountValue || parseFloat(product.discountValue) <= 0) {
+      return basePrice;
+    }
+    if (product.discountType === "percentage") {
+      const discountPct = Math.min(100, Math.max(0, parseFloat(product.discountValue)));
+      const discountAmount = (basePrice * discountPct) / 100;
+      return Math.max(0, parseFloat((basePrice - discountAmount).toFixed(2)));
+    } else {
+      // Monto fijo
+      const discountFixed = Math.max(0, parseFloat(product.discountValue));
+      return Math.max(0, parseFloat((basePrice - discountFixed).toFixed(2)));
+    }
+  },
+
   saveProducts: (products) => {
     try {
       localStorage.setItem("pos_products", JSON.stringify(products));
@@ -3923,7 +3942,10 @@ export const db = {
       minStock: parseInt(product.minStock) || 3,
       pointsReward: parseInt(product.pointsReward) || Math.round(product.price * 0.1),
       pointsCost: parseInt(product.pointsCost) || Math.round(product.price * 10),
-      brand: product.brand ? product.brand.trim() : ""
+      brand: product.brand ? product.brand.trim() : "",
+      hasDiscount: !!product.hasDiscount,
+      discountType: product.discountType || "percentage",
+      discountValue: parseFloat(product.discountValue) || 0
     };
     products.push(newProduct);
     db.saveProducts(products);
@@ -3951,7 +3973,10 @@ export const db = {
         minStock: parseInt(updatedProduct.minStock) || 3,
         pointsReward: parseInt(updatedProduct.pointsReward) || Math.round(updatedProduct.price * 0.1),
         pointsCost: parseInt(updatedProduct.pointsCost) || Math.round(updatedProduct.price * 10),
-        brand: updatedProduct.brand !== undefined ? (updatedProduct.brand ? updatedProduct.brand.trim() : "") : (products[index].brand || "")
+        brand: updatedProduct.brand !== undefined ? (updatedProduct.brand ? updatedProduct.brand.trim() : "") : (products[index].brand || ""),
+        hasDiscount: updatedProduct.hasDiscount !== undefined ? !!updatedProduct.hasDiscount : !!(products[index].hasDiscount),
+        discountType: updatedProduct.discountType || products[index].discountType || "percentage",
+        discountValue: updatedProduct.discountValue !== undefined ? (parseFloat(updatedProduct.discountValue) || 0) : (products[index].discountValue || 0)
       };
       db.saveProducts(products);
 

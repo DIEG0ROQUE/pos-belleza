@@ -4,12 +4,16 @@ require_once 'config.php';
 $pdo = getDBConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Intentar agregar la columna brand automáticamente si aún no existe
+// Intentar agregar las columnas si aún no existen
 try {
     $pdo->exec("ALTER TABLE products ADD COLUMN brand VARCHAR(100) NULL DEFAULT ''");
-} catch (Exception $e) {
-    // Si ya existe la columna, ignora el error
-}
+} catch (Exception $e) {}
+
+try {
+    $pdo->exec("ALTER TABLE products ADD COLUMN hasDiscount TINYINT(1) DEFAULT 0");
+    $pdo->exec("ALTER TABLE products ADD COLUMN discountType VARCHAR(20) DEFAULT 'percentage'");
+    $pdo->exec("ALTER TABLE products ADD COLUMN discountValue DECIMAL(10,2) DEFAULT 0");
+} catch (Exception $e) {}
 
 try {
     switch ($method) {
@@ -26,6 +30,9 @@ try {
                 $p['pointsReward'] = (int)$p['pointsReward'];
                 $p['pointsCost'] = (int)$p['pointsCost'];
                 $p['brand'] = (string)($p['brand'] ?? '');
+                $p['hasDiscount'] = !empty($p['hasDiscount']);
+                $p['discountType'] = (string)($p['discountType'] ?? 'percentage');
+                $p['discountValue'] = (float)($p['discountValue'] ?? 0);
                 $p['isSpaceRental'] = (bool)$p['isSpaceRental'];
                 $p['isTrending'] = (bool)$p['isTrending'];
                 $p['isPromo'] = (bool)$p['isPromo'];
@@ -40,8 +47,8 @@ try {
             // Si es un array de productos (sincronización masiva)
             if (isset($data['products']) && is_array($data['products'])) {
                 $stmt = $pdo->prepare("
-                    INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
-                    VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
+                    INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo, hasDiscount, discountType, discountValue)
+                    VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo, :hasDiscount, :discountType, :discountValue)
                     ON DUPLICATE KEY UPDATE
                         name = VALUES(name),
                         category = VALUES(category),
@@ -55,7 +62,10 @@ try {
                         image = VALUES(image),
                         isSpaceRental = VALUES(isSpaceRental),
                         isTrending = VALUES(isTrending),
-                        isPromo = VALUES(isPromo)
+                        isPromo = VALUES(isPromo),
+                        hasDiscount = VALUES(hasDiscount),
+                        discountType = VALUES(discountType),
+                        discountValue = VALUES(discountValue)
                 ");
                 
                 $pdo->beginTransaction();
@@ -75,7 +85,10 @@ try {
                         ':image' => $p['image'] ?? null,
                         ':isSpaceRental' => !empty($p['isSpaceRental']) ? 1 : 0,
                         ':isTrending' => !empty($p['isTrending']) ? 1 : 0,
-                        ':isPromo' => !empty($p['isPromo']) ? 1 : 0
+                        ':isPromo' => !empty($p['isPromo']) ? 1 : 0,
+                        ':hasDiscount' => !empty($p['hasDiscount']) ? 1 : 0,
+                        ':discountType' => $p['discountType'] ?? 'percentage',
+                        ':discountValue' => $p['discountValue'] ?? 0
                     ]);
                 }
                 $pdo->commit();
@@ -86,8 +99,8 @@ try {
             // Producto individual
             $id = $data['id'] ?? ('prod-' . uniqid());
             $stmt = $pdo->prepare("
-                INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo)
-                VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo)
+                INSERT INTO products (id, name, category, brand, barcode, price, cost, stock, minStock, pointsReward, pointsCost, image, isSpaceRental, isTrending, isPromo, hasDiscount, discountType, discountValue)
+                VALUES (:id, :name, :category, :brand, :barcode, :price, :cost, :stock, :minStock, :pointsReward, :pointsCost, :image, :isSpaceRental, :isTrending, :isPromo, :hasDiscount, :discountType, :discountValue)
             ");
             $stmt->execute([
                 ':id' => $id,
@@ -104,7 +117,10 @@ try {
                 ':image' => $data['image'] ?? null,
                 ':isSpaceRental' => !empty($data['isSpaceRental']) ? 1 : 0,
                 ':isTrending' => !empty($data['isTrending']) ? 1 : 0,
-                ':isPromo' => !empty($data['isPromo']) ? 1 : 0
+                ':isPromo' => !empty($data['isPromo']) ? 1 : 0,
+                ':hasDiscount' => !empty($data['hasDiscount']) ? 1 : 0,
+                ':discountType' => $data['discountType'] ?? 'percentage',
+                ':discountValue' => $data['discountValue'] ?? 0
             ]);
 
             echo json_encode(["success" => true, "id" => $id, "message" => "Producto creado"]);
@@ -133,7 +149,10 @@ try {
                     image = :image,
                     isSpaceRental = :isSpaceRental,
                     isTrending = :isTrending,
-                    isPromo = :isPromo
+                    isPromo = :isPromo,
+                    hasDiscount = :hasDiscount,
+                    discountType = :discountType,
+                    discountValue = :discountValue
                 WHERE id = :id
             ");
             $stmt->execute([
@@ -151,7 +170,10 @@ try {
                 ':image' => $data['image'] ?? null,
                 ':isSpaceRental' => !empty($data['isSpaceRental']) ? 1 : 0,
                 ':isTrending' => !empty($data['isTrending']) ? 1 : 0,
-                ':isPromo' => !empty($data['isPromo']) ? 1 : 0
+                ':isPromo' => !empty($data['isPromo']) ? 1 : 0,
+                ':hasDiscount' => !empty($data['hasDiscount']) ? 1 : 0,
+                ':discountType' => $data['discountType'] ?? 'percentage',
+                ':discountValue' => $data['discountValue'] ?? 0
             ]);
 
             echo json_encode(["success" => true, "message" => "Producto actualizado"]);

@@ -256,9 +256,15 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
             <div className="product-card" key={product.id}>
               <div className="product-img-wrapper">
                 <img className="product-img" src={product.image} alt={product.name} />
-                <span className={`product-badge ${product.isPromo ? "promo" : ""}`}>
-                  {product.isPromo ? "Promoción" : "Tendencia"}
-                </span>
+                {product.hasDiscount && parseFloat(product.discountValue) > 0 ? (
+                  <span className="product-badge promo" style={{ background: "#c93b54", color: "white", fontWeight: "bold" }}>
+                    {product.discountType === "percentage" ? `-${product.discountValue}%` : `-$${product.discountValue}`}
+                  </span>
+                ) : (
+                  <span className={`product-badge ${product.isPromo ? "promo" : ""}`}>
+                    {product.isPromo ? "Promoción" : "Tendencia"}
+                  </span>
+                )}
                 
                 {currentUser && currentUser.role === "gerente" && (
                   <>
@@ -331,7 +337,18 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                 </div>
                 <h4 className="product-name">{product.name}</h4>
                 <div className="product-price-row">
-                  <span className="product-price">${product.price.toFixed(2)} MXN</span>
+                  {product.hasDiscount && parseFloat(product.discountValue) > 0 ? (
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <span className="product-price" style={{ color: "#c93b54", fontWeight: "bold" }}>
+                        ${db.getEffectivePrice(product).toFixed(2)} MXN
+                      </span>
+                      <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                        ${product.price.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="product-price">${product.price.toFixed(2)} MXN</span>
+                  )}
                   <span className="product-points">+{product.pointsReward} pts</span>
                 </div>
               </div>
@@ -386,9 +403,13 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
               <div className="product-card" key={product.id}>
                 <div className="product-img-wrapper">
                   <img className="product-img" src={product.image} alt={product.name} />
-                  {product.stock <= 5 && (
+                  {product.hasDiscount && parseFloat(product.discountValue) > 0 ? (
+                    <span className="product-badge promo" style={{ background: "#c93b54", color: "white", fontWeight: "bold" }}>
+                      {product.discountType === "percentage" ? `-${product.discountValue}%` : `-$${product.discountValue}`}
+                    </span>
+                  ) : product.stock <= 5 ? (
                     <span className="product-badge promo">Últimas piezas</span>
-                  )}
+                  ) : null}
                   
                   {currentUser && currentUser.role === "gerente" && (
                     <button 
@@ -418,10 +439,28 @@ export default function PublicStore({ currentUser, products, onRefreshProducts, 
                   )}
                 </div>
                 <div className="product-info">
-                  <span className="product-cat">{product.category}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+                    <span className="product-cat" style={{ margin: 0 }}>{product.category}</span>
+                    {product.brand && (
+                      <span style={{ fontSize: "0.72rem", background: "rgba(49, 29, 32, 0.08)", color: "var(--text-dark)", padding: "0.1rem 0.4rem", borderRadius: "8px", fontWeight: "600" }}>
+                        {product.brand}
+                      </span>
+                    )}
+                  </div>
                   <h4 className="product-name" style={{ fontSize: "0.95rem", minHeight: "2.5rem" }}>{product.name}</h4>
                   <div className="product-price-row">
-                    <span className="product-price" style={{ fontSize: "1.1rem" }}>${product.price.toFixed(2)}</span>
+                    {product.hasDiscount && parseFloat(product.discountValue) > 0 ? (
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <span className="product-price" style={{ fontSize: "1.1rem", color: "#c93b54", fontWeight: "bold" }}>
+                          ${db.getEffectivePrice(product).toFixed(2)}
+                        </span>
+                        <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                          ${product.price.toFixed(2)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="product-price" style={{ fontSize: "1.1rem" }}>${product.price.toFixed(2)}</span>
+                    )}
                     <span className="product-points">+{product.pointsReward} pts</span>
                   </div>
                 </div>

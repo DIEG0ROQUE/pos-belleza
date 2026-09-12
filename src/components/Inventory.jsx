@@ -1,6 +1,6 @@
 // Inventory.jsx - Control de Inventario y Entrada de Mercancía
 import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X, Sparkles, FolderPlus } from "lucide-react";
+import { Plus, Edit, Trash2, Search, PackageOpen, AlertTriangle, Check, RefreshCw, Printer, Download, Tag, X, Sparkles, FolderPlus, Copy, ClipboardCheck, Percent, DollarSign } from "lucide-react";
 import * as XLSX from "xlsx";
 import { db } from "../utils/db";
 
@@ -34,6 +34,16 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   // Estado para los productos seleccionados mediante checkbox
   const [selectedProductIds, setSelectedProductIds] = useState([]);
 
+  // Estado para Copiar y Pegar Datos de Producto
+  const [copiedProduct, setCopiedProduct] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pos_copied_product");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   // Campos de formulario para Producto
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Maquillaje");
@@ -45,6 +55,11 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
   const [barcode, setBarcode] = useState("");
   const [image, setImage] = useState("");
   const [isSpaceRental, setIsSpaceRental] = useState(false);
+
+  // Campos de Descuento
+  const [hasDiscount, setHasDiscount] = useState(false);
+  const [discountType, setDiscountType] = useState("percentage"); // percentage | fixed
+  const [discountValue, setDiscountValue] = useState("");
 
   // Cargar categorías y marcas al iniciar o cuando cambien los productos
   useEffect(() => {
@@ -80,6 +95,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setBarcode(generateUniqueBarcode());
     setImage("https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80"); // Placeholder estético
     setIsSpaceRental(false);
+    setHasDiscount(false);
+    setDiscountType("percentage");
+    setDiscountValue("");
     setShowProductModal(true);
   };
 
@@ -93,9 +111,90 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     setStock(prod.stock.toString());
     setMinStock(prod.minStock.toString());
     setBarcode(prod.barcode);
-    setImage(prod.image);
+    setImage(prod.image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80");
     setIsSpaceRental(prod.isSpaceRental || false);
+    setHasDiscount(!!prod.hasDiscount);
+    setDiscountType(prod.discountType || "percentage");
+    setDiscountValue(prod.discountValue ? prod.discountValue.toString() : "");
     setShowProductModal(true);
+  };
+
+  // Copiar datos del producto actual
+  const handleCopyProductData = (prod = null) => {
+    const dataToCopy = prod ? {
+      name: prod.name,
+      category: prod.category || "Maquillaje",
+      brand: prod.brand || "",
+      cost: prod.cost !== undefined ? prod.cost.toString() : "0",
+      price: prod.price !== undefined ? prod.price.toString() : "0",
+      stock: prod.stock !== undefined ? prod.stock.toString() : "1",
+      minStock: prod.minStock !== undefined ? prod.minStock.toString() : "3",
+      image: prod.image || "",
+      isSpaceRental: !!prod.isSpaceRental,
+      hasDiscount: !!prod.hasDiscount,
+      discountType: prod.discountType || "percentage",
+      discountValue: prod.discountValue ? prod.discountValue.toString() : ""
+    } : {
+      name,
+      category,
+      brand,
+      cost,
+      price,
+      stock,
+      minStock,
+      image,
+      isSpaceRental,
+      hasDiscount,
+      discountType,
+      discountValue
+    };
+
+    setCopiedProduct(dataToCopy);
+    localStorage.setItem("pos_copied_product", JSON.stringify(dataToCopy));
+    showToast(`Datos de "${dataToCopy.name}" copiados con éxito.`, "success");
+  };
+
+  // Pegar datos copiados en el formulario
+  const handlePasteProductData = () => {
+    if (!copiedProduct) {
+      showToast("No hay datos copiados en el portapapeles.", "warning");
+      return;
+    }
+    setName(copiedProduct.name || "");
+    setCategory(copiedProduct.category || "Maquillaje");
+    setBrand(copiedProduct.brand || "");
+    setCost(copiedProduct.cost || "");
+    setPrice(copiedProduct.price || "");
+    setStock(copiedProduct.stock || "");
+    setMinStock(copiedProduct.minStock || "3");
+    setImage(copiedProduct.image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80");
+    setIsSpaceRental(!!copiedProduct.isSpaceRental);
+    setHasDiscount(!!copiedProduct.hasDiscount);
+    setDiscountType(copiedProduct.discountType || "percentage");
+    setDiscountValue(copiedProduct.discountValue || "");
+    setBarcode(generateUniqueBarcode()); // Siempre genera un nuevo código único
+    showToast("Datos pegados. Se generó un nuevo código de barras automáticamente.", "success");
+  };
+
+  // Duplicar producto directamente desde la tabla
+  const handleDuplicateProduct = (prod) => {
+    handleCopyProductData(prod);
+    setEditingProduct(null);
+    setName(prod.name);
+    setCategory(prod.category || "Maquillaje");
+    setBrand(prod.brand || "");
+    setPrice(prod.price.toString());
+    setCost(prod.cost.toString());
+    setStock(prod.stock.toString());
+    setMinStock(prod.minStock.toString());
+    setBarcode(generateUniqueBarcode());
+    setImage(prod.image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80");
+    setIsSpaceRental(prod.isSpaceRental || false);
+    setHasDiscount(!!prod.hasDiscount);
+    setDiscountType(prod.discountType || "percentage");
+    setDiscountValue(prod.discountValue ? prod.discountValue.toString() : "");
+    setShowProductModal(true);
+    showToast(`Duplicando "${prod.name}". Edita el nombre o detalles y guarda.`, "info");
   };
 
   // Crear categoría al vuelo
@@ -168,6 +267,19 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     }
   };
 
+  // Calcular precio con descuento en tiempo real para vista previa
+  const calculateDiscountedPrice = () => {
+    const p = parseFloat(price) || 0;
+    const dVal = parseFloat(discountValue) || 0;
+    if (!hasDiscount || dVal <= 0) return p;
+    if (discountType === "percentage") {
+      const pct = Math.min(100, Math.max(0, dVal));
+      return Math.max(0, p - (p * pct / 100));
+    } else {
+      return Math.max(0, p - dVal);
+    }
+  };
+
   const handleSaveProduct = (e, shouldPrintLabel = false) => {
     if (e) e.preventDefault();
 
@@ -186,7 +298,10 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       minStock: parseInt(minStock),
       barcode,
       image: image || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&q=80",
-      isSpaceRental: !!isSpaceRental
+      isSpaceRental: !!isSpaceRental,
+      hasDiscount: !!hasDiscount,
+      discountType: discountType,
+      discountValue: hasDiscount ? (parseFloat(discountValue) || 0) : 0
     };
 
     let savedProduct = null;
@@ -275,15 +390,20 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
     }
 
     try {
-      const data = productsToExport.map(p => ({
-        "Codigo": p.barcode,
-        "Nombre": p.name,
-        "Marca": p.brand || "Sin Marca",
-        "Categoria": p.category,
-        "Costo": `$${p.cost.toFixed(2)}`,
-        "Precio": `$${p.price.toFixed(2)}`,
-        "Stock": p.stock
-      }));
+      const data = productsToExport.map(p => {
+        const effPrice = db.getEffectivePrice(p);
+        return {
+          "Codigo": p.barcode,
+          "Nombre": p.name,
+          "Marca": p.brand || "Sin Marca",
+          "Categoria": p.category,
+          "Costo": `$${p.cost.toFixed(2)}`,
+          "Precio Normal": `$${p.price.toFixed(2)}`,
+          "Descuento": p.hasDiscount ? (p.discountType === "percentage" ? `${p.discountValue}%` : `$${p.discountValue}`) : "Sin Descuento",
+          "Precio Venta": `$${effPrice.toFixed(2)}`,
+          "Stock": p.stock
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
@@ -318,7 +438,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       }}>
         <div>
           <h1 style={{ margin: 0 }}>Control de Inventario</h1>
-          <p style={{ color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Registra mercancía, edita detalles de productos y monitorea existencias.</p>
+          <p style={{ color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Registra mercancía, edita detalles de productos, promociones y monitorea existencias.</p>
         </div>
 
         {/* Botones de acción superior */}
@@ -518,6 +638,9 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
               filteredProducts.map(prod => {
                 const isLowStock = prod.stock <= prod.minStock;
                 const isSelected = selectedProductIds.includes(prod.id);
+                const hasDiscountActive = prod.hasDiscount && prod.discountValue > 0;
+                const effectivePrice = db.getEffectivePrice(prod);
+
                 return (
                   <tr key={prod.id} style={{ 
                     borderBottom: "1px solid #f0ebe9",
@@ -583,7 +706,32 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                       }}>{prod.category}</span>
                     </td>
                     <td style={{ padding: "0.75rem 1rem", fontSize: "0.95rem" }}>${prod.cost.toFixed(2)}</td>
-                    <td style={{ padding: "0.75rem 1rem", fontSize: "0.95rem", fontWeight: "600" }}>${prod.price.toFixed(2)}</td>
+                    <td style={{ padding: "0.75rem 1rem", fontSize: "0.95rem" }}>
+                      {hasDiscountActive ? (
+                        <div>
+                          <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: "0.8rem", display: "block" }}>
+                            ${prod.price.toFixed(2)}
+                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                            <strong style={{ color: "#b91c1c", fontSize: "1rem" }}>
+                              ${effectivePrice.toFixed(2)}
+                            </strong>
+                            <span style={{
+                              fontSize: "0.68rem",
+                              background: "#fee2e2",
+                              color: "#991b1b",
+                              padding: "0.1rem 0.35rem",
+                              borderRadius: "4px",
+                              fontWeight: "700"
+                            }}>
+                              {prod.discountType === "percentage" ? `-${prod.discountValue}%` : `-$${prod.discountValue}`}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <strong style={{ fontWeight: "600" }}>${prod.price.toFixed(2)}</strong>
+                      )}
+                    </td>
                     <td style={{ padding: "0.75rem 1rem", textAlign: "center" }}>
                       <span style={{
                         fontWeight: "700",
@@ -608,6 +756,14 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                         </button>
                         {currentUser.role === "gerente" && (
                           <>
+                            <button 
+                              className="btn btn-secondary btn-sm" 
+                              onClick={() => handleDuplicateProduct(prod)} 
+                              style={{ padding: "0.4rem" }} 
+                              title="Duplicar producto (Copiar datos con nuevo código)"
+                            >
+                              <Copy size={14} />
+                            </button>
                             <button 
                               className="btn btn-secondary btn-sm" 
                               onClick={() => handlePrintDirectLabel(prod)} 
@@ -637,12 +793,40 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
       {/* MODAL AGREGAR / EDITAR PRODUCTO */}
       {showProductModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: "600px" }}>
+          <div className="modal-content" style={{ maxWidth: "620px" }}>
             <button className="modal-close" onClick={() => setShowProductModal(false)}>
               <Plus size={20} style={{ transform: "rotate(45deg)" }} />
             </button>
             
-            <h2>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", paddingRight: "2rem" }}>
+              <h2 style={{ margin: 0 }}>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</h2>
+              
+              {/* Botones de Copiar y Pegar en el Modal */}
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                {editingProduct && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleCopyProductData()}
+                    style={{ fontSize: "0.75rem", padding: "0.35rem 0.65rem", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                    title="Copiar estos datos para usar en otro producto"
+                  >
+                    <Copy size={13} /> Copiar Datos
+                  </button>
+                )}
+                {!editingProduct && copiedProduct && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handlePasteProductData}
+                    style={{ fontSize: "0.75rem", padding: "0.35rem 0.65rem", display: "flex", alignItems: "center", gap: "0.3rem", background: "rgba(197, 155, 142, 0.15)", color: "var(--primary-color)", borderColor: "var(--primary-color)" }}
+                    title="Pegar datos del producto copiado anteriormente"
+                  >
+                    <ClipboardCheck size={13} /> Pegar Plantilla ({copiedProduct.name.slice(0, 12)}...)
+                  </button>
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleSaveProduct}>
               <div className="input-group">
@@ -726,10 +910,10 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 </div>
               </div>
 
-              {/* Costo y Precio */}
+              {/* Costo y Precio Base */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="input-group">
-                  <label className="input-label">Costo Adquisición *</label>
+                  <label className="input-label">Costo Adquisición * ($)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -742,7 +926,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label">Precio al Público *</label>
+                  <label className="input-label">Precio al Público Regular * ($)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -753,6 +937,85 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
                     required
                   />
                 </div>
+              </div>
+
+              {/* SECCIÓN DE DESCUENTOS Y OFERTAS */}
+              <div style={{
+                background: hasDiscount ? "rgba(185, 28, 28, 0.04)" : "rgba(49, 29, 32, 0.02)",
+                border: hasDiscount ? "1px solid rgba(185, 28, 28, 0.2)" : "1px solid var(--border-color)",
+                borderRadius: "var(--radius-md)",
+                padding: "0.85rem 1rem",
+                marginBottom: "1.25rem",
+                transition: "var(--transition-fast)"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input 
+                    type="checkbox" 
+                    id="hasDiscount"
+                    checked={hasDiscount}
+                    onChange={(e) => setHasDiscount(e.target.checked)}
+                    style={{ width: "17px", height: "17px", accentColor: "#b91c1c", cursor: "pointer", margin: 0 }}
+                  />
+                  <label htmlFor="hasDiscount" style={{ fontSize: "0.9rem", fontWeight: "700", color: hasDiscount ? "#b91c1c" : "var(--text-dark)", cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <Tag size={15} /> ¿Aplicar Descuento / Precio de Promoción?
+                  </label>
+                </div>
+
+                {hasDiscount && (
+                  <div style={{ marginTop: "0.85rem", paddingTop: "0.75rem", borderTop: "1px dashed rgba(185, 28, 28, 0.2)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.5rem" }}>
+                      <div>
+                        <label className="input-label" style={{ fontSize: "0.8rem" }}>Tipo de Descuento</label>
+                        <select
+                          className="input-field"
+                          value={discountType}
+                          onChange={(e) => setDiscountType(e.target.value)}
+                          style={{ padding: "0.45rem 0.65rem", fontSize: "0.85rem" }}
+                        >
+                          <option value="percentage">Porcentaje (%)</option>
+                          <option value="fixed">Monto Fijo ($ MXN)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="input-label" style={{ fontSize: "0.8rem" }}>
+                          {discountType === "percentage" ? "Porcentaje de descuento (%)" : "Monto a descontar ($ MXN)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="input-field"
+                          placeholder={discountType === "percentage" ? "Ej. 20" : "Ej. 50"}
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          style={{ padding: "0.45rem 0.65rem", fontSize: "0.85rem" }}
+                          required={hasDiscount}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resumen del Precio Final de Promoción */}
+                    {price && parseFloat(price) > 0 && (
+                      <div style={{
+                        background: "#fff",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "6px",
+                        fontSize: "0.85rem",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        border: "1px solid rgba(185, 28, 28, 0.15)"
+                      }}>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          Precio Original: <span style={{ textDecoration: "line-through" }}>${parseFloat(price).toFixed(2)}</span>
+                        </span>
+                        <span style={{ fontWeight: "700", color: "#b91c1c" }}>
+                          Precio Final en Caja: ${calculateDiscountedPrice().toFixed(2)} MXN
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Stock Inicial y Stock Mínimo */}
@@ -980,7 +1243,7 @@ export default function Inventory({ currentUser, products, onRefreshProducts, sh
             marginTop: "2px"
           }}>
             <span>{printingLabelProduct.barcode}</span>
-            <strong style={{ fontSize: "8.5pt" }}>${printingLabelProduct.price.toFixed(2)}</strong>
+            <strong style={{ fontSize: "8.5pt" }}>${db.getEffectivePrice(printingLabelProduct).toFixed(2)}</strong>
           </div>
         </div>
       )}

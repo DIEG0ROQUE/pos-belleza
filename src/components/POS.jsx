@@ -1,6 +1,6 @@
 // POS.jsx - Módulo de Punto de Venta (POS) con Buscador, Escaneo de Cámara y Fidelización
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Camera, Plus, Minus, Trash2, User, Phone, CheckCircle, Ticket, X, Award, CreditCard, DollarSign, ShoppingBag } from "lucide-react";
+import { Search, Camera, Plus, Minus, Trash2, User, Phone, CheckCircle, Ticket, X, Award, CreditCard, DollarSign, ShoppingBag, Zap, Tag } from "lucide-react";
 import { db } from "../utils/db";
 
 
@@ -23,6 +23,15 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
   const [paymentMethod, setPaymentMethod] = useState("Efectivo"); // Efectivo, Tarjeta, Puntos
   const [cashReceived, setCashReceived] = useState("");
   const [lastSaleReceipt, setLastSaleReceipt] = useState(null); // Para mostrar ticket al finalizar
+
+  
+  // Estados para Venta Rápida / Personalizada
+  const [showQuickSaleModal, setShowQuickSaleModal] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickPrice, setQuickPrice] = useState("");
+  const [quickBarcode, setQuickBarcode] = useState("");
+  const [quickCategory, setQuickCategory] = useState("Venta Rápida");
+  const [quickIsSpaceRental, setQuickIsSpaceRental] = useState(false);
 
   // --- CONTROL DE TURNOS ---
   const [activeShift, setActiveShift] = useState(null);
@@ -731,7 +740,10 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
 
   // Carrito helpers
   const addToCart = (product) => {
-    if (product.stock <= 0) {
+    const effectivePrice = db.getEffectivePrice ? db.getEffectivePrice(product) : product.price;
+    const stockAvailable = product.isQuickSale ? 999 : product.stock;
+
+    if (stockAvailable <= 0) {
       showToast("Producto sin existencias en inventario.", "error");
       return;
     }
@@ -739,19 +751,60 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
     setCart(prevCart => {
       const existing = prevCart.find(item => item.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
-          showToast(`Solo quedan ${product.stock} piezas en inventario.`, "warning");
+        if (existing.quantity >= stockAvailable) {
+          showToast(`Solo quedan ${stockAvailable} piezas en inventario.`, "warning");
           return prevCart;
         }
         return prevCart.map(item => 
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      return [...prevCart, { 
+        ...product, 
+        originalPrice: product.price,
+        price: effectivePrice,
+        stock: stockAvailable,
+        quantity: 1 
+      }];
     });
     setSearchQuery("");
     setSearchResults([]);
   };
+
+  // Manejar adición de artículo rápido personalizado
+  const handleAddQuickSale = (e) => {
+    e.preventDefault();
+    if (!quickName.trim()) {
+      showToast("Ingresa el nombre o concepto del artículo.", "error");
+      return;
+    }
+    const priceNum = parseFloat(quickPrice);
+    if (isNaN(priceNum) || priceNum < 0) {
+      showToast("Ingresa un precio válido mayor o igual a 0.", "error");
+      return;
+    }
+
+    const quickItem = {
+      id: `quick-${Date.now()}`,
+      name: quickName.trim(),
+      barcode: quickBarcode.trim() || `VR-${Date.now().toString().slice(-4)}`,
+      price: priceNum,
+      originalPrice: priceNum,
+      category: quickCategory || "Venta Rápida",
+      isSpaceRental: !!quickIsSpaceRental,
+      isQuickSale: true,
+      stock: 999
+    };
+
+    addToCart(quickItem);
+    showToast(`Artículo "${quickItem.name}" agregado a la cuenta.`, "success");
+    setQuickName("");
+    setQuickPrice("");
+    setQuickBarcode("");
+    setQuickIsSpaceRental(false);
+    setShowQuickSaleModal(false);
+  };
+
 
   const updateQuantity = (id, amount) => {
     setCart(prevCart => {
@@ -1014,6 +1067,17 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
                   </div>
                 )}
               </div>
+
+              
+              {/* Botón de Venta Rápida */}
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowQuickSaleModal(true)}
+                style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "0.4rem", borderColor: "var(--accent-gold)", color: "var(--text-dark)" }}
+                title="Cobrar producto no registrado o servicio manual"
+              >
+                <Zap size={18} color="var(--accent-gold)" /> Venta Rápida
+              </button>
 
               {/* Botón de Escanear con Cámara */}
               <button 
