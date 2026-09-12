@@ -1309,6 +1309,140 @@ export default function POS({ currentUser, products, onRefreshProducts, showToas
         </div>
       </div>
 
+      {/* MODAL VENTA RÁPIDA / PERSONALIZADA */}
+      {showQuickSaleModal && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-content" style={{ maxWidth: "480px" }}>
+            <button className="modal-close" onClick={() => setShowQuickSaleModal(false)}>
+              <X size={20} />
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+              <div style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                background: "rgba(197, 155, 142, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--primary-color)"
+              }}>
+                <Zap size={22} color="var(--primary-color)" />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "1.35rem", color: "var(--primary-color)" }}>
+                  Venta Rápida / Personalizada
+                </h2>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                  Cobra productos no registrados, ajustes o prendas directas
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddQuickSale}>
+              <div className="input-group" style={{ marginBottom: "1rem" }}>
+                <label className="input-label">Nombre / Concepto del Producto *</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej. Prenda de muestra, Accesorio especial, Ajuste"
+                  value={quickName}
+                  onChange={(e) => setQuickName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                <div className="input-group">
+                  <label className="input-label">Precio de Venta ($ MXN) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input-field"
+                    placeholder="Ej. 150.00"
+                    value={quickPrice}
+                    onChange={(e) => setQuickPrice(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Categoría</label>
+                  <select
+                    className="input-field"
+                    value={quickCategory}
+                    onChange={(e) => setQuickCategory(e.target.value)}
+                  >
+                    <option value="Venta Rápida">Venta Rápida</option>
+                    {db.getCategories().map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: "1.25rem" }}>
+                <label className="input-label">Código de Barras (Opcional)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Dejar en blanco para auto-generar"
+                  value={quickBarcode}
+                  onChange={(e) => setQuickBarcode(e.target.value)}
+                />
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginTop: "3px" }}>
+                  Si el producto físico tiene código de barras, puedes escribirlo o escanearlo aquí.
+                </span>
+              </div>
+
+              <div style={{
+                background: "rgba(197, 155, 142, 0.08)",
+                padding: "0.85rem",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-color)",
+                marginBottom: "1.5rem"
+              }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", cursor: "pointer", fontSize: "0.9rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={quickIsSpaceRental}
+                    onChange={(e) => setQuickIsSpaceRental(e.target.checked)}
+                    style={{ width: "18px", height: "18px", accentColor: "var(--primary-color)" }}
+                  />
+                  <span>
+                    <strong>Renta de Espacio / Consignación</strong>
+                    <small style={{ display: "block", color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                      Marcar si este producto es de un expositor externo (para clasificar en el corte de caja)
+                    </small>
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowQuickSaleModal(false)}
+                  style={{ flex: 1 }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+                >
+                  <Plus size={18} /> Agregar a la Cuenta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE PAGO */}
       {showPaymentModal && (
         <div className="modal-overlay">
